@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Printer, FileText, Calendar, BarChart3 } from 'lucide-react';
 
 const reportes = [
-  { title: 'Reporte de Notas por Bimestre', desc: 'Notas de todos los alumnos por período', icon: <BarChart3 className="h-6 w-6" /> },
+  { title: 'Reporte de Notas por Etapa', desc: 'Notas de todos los alumnos por período', icon: <BarChart3 className="h-6 w-6" /> },
   { title: 'Libretas de Notas', desc: 'Libreta individual por alumno', icon: <FileText className="h-6 w-6" /> },
   { title: 'Horario de Clases', desc: 'Horario semanal de clases', icon: <Calendar className="h-6 w-6" /> },
   { title: 'Reporte de Asistencia', desc: 'Resumen de asistencia por materia', icon: <BarChart3 className="h-6 w-6" /> },

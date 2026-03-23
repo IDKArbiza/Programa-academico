@@ -46,7 +46,7 @@ const DocenteCriterios = () => {
                 <TableRow key={c.id}>
                   <TableCell className="font-medium">{c.name}</TableCell>
                   <TableCell>{c.weight}%</TableCell>
-                  <TableCell>Bimestre {c.period}</TableCell>
+                  <TableCell>Etapa {c.etapa}</TableCell>
                 </TableRow>
               ))}
               {filtered.length === 0 && (

@@ -15,10 +15,10 @@ const Matricula = () => {
   const [students, setStudents] = useState<Student[]>(mockStudents);
   const [search, setSearch] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [form, setForm] = useState<Partial<Student>>({ grade: '4to', section: 'A', status: 'activo' });
+  const [form, setForm] = useState<Partial<Student>>({ grade: '1° Año', section: 'A', status: 'activo' });
 
   const filtered = students.filter(s =>
-    `${s.firstName} ${s.lastName} ${s.dni}`.toLowerCase().includes(search.toLowerCase())
+    `${s.firstName} ${s.lastName} ${s.ci}`.toLowerCase().includes(search.toLowerCase())
   );
 
   const handleAdd = () => {
@@ -26,18 +26,23 @@ const Matricula = () => {
       id: `s${Date.now()}`,
       firstName: form.firstName || '',
       lastName: form.lastName || '',
-      dni: form.dni || '',
-      grade: form.grade || '4to',
+      ci: form.ci || '',
+      grade: form.grade || '1° Año',
       section: form.section || 'A',
+      turn: form.turn || 'mañana',
       enrollmentDate: new Date().toISOString().split('T')[0],
       status: 'activo',
       parentName: form.parentName || '',
       parentPhone: form.parentPhone || '',
       address: form.address || '',
+      city: form.city || 'Asunción',
+      department: form.department || 'Central',
+      birthDate: form.birthDate || '',
+      nationality: form.nationality || 'paraguayo',
     };
     setStudents([...students, newStudent]);
     setDialogOpen(false);
-    setForm({ grade: '4to', section: 'A', status: 'activo' });
+    setForm({ grade: '1° Año', section: 'A', status: 'activo', turn: 'mañana' });
   };
 
   return (
@@ -67,15 +72,15 @@ const Matricula = () => {
                   <Input value={form.lastName || ''} onChange={e => setForm({...form, lastName: e.target.value})} />
                 </div>
                 <div className="space-y-2">
-                  <Label>DNI</Label>
-                  <Input value={form.dni || ''} onChange={e => setForm({...form, dni: e.target.value})} />
+                  <Label>CI</Label>
+                  <Input value={form.ci || ''} onChange={e => setForm({...form, ci: e.target.value})} />
                 </div>
                 <div className="space-y-2">
                   <Label>Grado</Label>
                   <Select value={form.grade} onValueChange={v => setForm({...form, grade: v})}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      {['1ro','2do','3ro','4to','5to'].map(g => <SelectItem key={g} value={g}>{g}</SelectItem>)}
+                      {['1° Año','2° Año','3° Año'].map(g => <SelectItem key={g} value={g}>{g}</SelectItem>)}
                     </SelectContent>
                   </Select>
                 </div>
@@ -109,7 +114,7 @@ const Matricula = () => {
 
       <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input className="pl-10" placeholder="Buscar por nombre o DNI..." value={search} onChange={e => setSearch(e.target.value)} />
+        <Input className="pl-10" placeholder="Buscar por nombre o CI..." value={search} onChange={e => setSearch(e.target.value)} />
       </div>
 
       <Card>
@@ -118,7 +123,7 @@ const Matricula = () => {
             <TableHeader>
               <TableRow>
                 <TableHead>Alumno</TableHead>
-                <TableHead>DNI</TableHead>
+                <TableHead>CI</TableHead>
                 <TableHead>Grado</TableHead>
                 <TableHead>Apoderado</TableHead>
                 <TableHead>Estado</TableHead>
@@ -128,7 +133,7 @@ const Matricula = () => {
               {filtered.map(s => (
                 <TableRow key={s.id}>
                   <TableCell className="font-medium">{s.firstName} {s.lastName}</TableCell>
-                  <TableCell>{s.dni}</TableCell>
+                  <TableCell>{s.ci}</TableCell>
                   <TableCell>{s.grade} "{s.section}"</TableCell>
                   <TableCell>{s.parentName}</TableCell>
                   <TableCell>

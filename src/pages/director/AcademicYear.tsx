@@ -7,13 +7,14 @@ import { useState } from 'react';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { PeriodType } from '@/lib/types';
 
 const AcademicYear = () => {
   const [year, setYear] = useState(mockAcademicYear);
 
   return (
     <div className="space-y-6">
-      <h2 className="text-2xl font-bold">Apertura de Año Académico</h2>
+      <h2 className="text-2xl font-bold">Configuración Año Lectivo - Colegio CPCC</h2>
 
       <Card className="max-w-xl">
         <CardContent className="p-6 space-y-4">
@@ -31,13 +32,11 @@ const AcademicYear = () => {
               <Input type="number" value={year.year} onChange={e => setYear({...year, year: parseInt(e.target.value)})} />
             </div>
             <div className="space-y-2">
-              <Label>Tipo de Período</Label>
-              <Select value={year.periodType} onValueChange={v => setYear({...year, periodType: v as any})}>
+              <Label>Sistema de Evaluación</Label>
+              <Select value={year.periodType} onValueChange={v => setYear({...year, periodType: v as PeriodType})}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="bimestre">Bimestral</SelectItem>
-                  <SelectItem value="trimestre">Trimestral</SelectItem>
-                  <SelectItem value="semestre">Semestral</SelectItem>
+                  <SelectItem value="etapa">Etapa (2 etapas/año)</SelectItem>
                 </SelectContent>
               </Select>
             </div>

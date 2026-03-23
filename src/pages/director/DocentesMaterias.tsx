@@ -30,7 +30,7 @@ const DocentesMaterias = () => {
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1"><Label>Nombres</Label><Input /></div>
                   <div className="space-y-1"><Label>Apellidos</Label><Input /></div>
-                  <div className="space-y-1"><Label>DNI</Label><Input /></div>
+                  <div className="space-y-1"><Label>CI</Label><Input /></div>
                   <div className="space-y-1"><Label>Especialidad</Label><Input /></div>
                   <div className="space-y-1"><Label>Teléfono</Label><Input /></div>
                   <div className="space-y-1"><Label>Email</Label><Input /></div>

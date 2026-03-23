@@ -47,7 +47,7 @@ const CriteriosEvaluacion = () => {
                 <Select defaultValue="1">
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    {[1,2,3,4].map(p => <SelectItem key={p} value={String(p)}>Bimestre {p}</SelectItem>)}
+                    {[1,2].map(p => <SelectItem key={p} value={String(p)}>Etapa {p}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
@@ -80,7 +80,7 @@ const CriteriosEvaluacion = () => {
                 <TableRow key={c.id}>
                   <TableCell className="font-medium">{c.name}</TableCell>
                   <TableCell>{c.weight}%</TableCell>
-                  <TableCell>Bimestre {c.period}</TableCell>
+                  <TableCell>Etapa {c.etapa}</TableCell>
                 </TableRow>
               ))}
               {filtered.length === 0 && (

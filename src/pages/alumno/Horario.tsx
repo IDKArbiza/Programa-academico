@@ -4,7 +4,7 @@ import { mockSchedule, DAYS } from '@/lib/mock-data';
 import { Printer } from 'lucide-react';
 
 const Horario = () => {
-  const schedule = mockSchedule.filter(s => s.grade === '4to' && s.section === 'A');
+  const schedule = mockSchedule.filter(s => s.grade === '1° Año' && s.section === 'A');
   const times = [...new Set(schedule.map(s => `${s.startTime}-${s.endTime}`))].sort();
 
   return (

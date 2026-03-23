@@ -7,7 +7,7 @@ import { mockStudents, mockGrades, mockSubjects, gradeLabel, gradeColor } from '
 import { Printer } from 'lucide-react';
 
 const ReporteNotas = () => {
-  const [selectedGrade, setSelectedGrade] = useState('4to');
+  const [selectedGrade, setSelectedGrade] = useState('1° Año');
   const [selectedPeriod, setSelectedPeriod] = useState('1');
 
   const subjects = mockSubjects.filter(s => s.grade === selectedGrade);
@@ -24,13 +24,13 @@ const ReporteNotas = () => {
         <Select value={selectedGrade} onValueChange={setSelectedGrade}>
           <SelectTrigger className="w-36"><SelectValue /></SelectTrigger>
           <SelectContent>
-            {['1ro','2do','3ro','4to','5to'].map(g => <SelectItem key={g} value={g}>{g}</SelectItem>)}
+            {['1° Año','2° Año','3° Año'].map(g => <SelectItem key={g} value={g}>{g}</SelectItem>)}
           </SelectContent>
         </Select>
         <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
           <SelectTrigger className="w-48"><SelectValue /></SelectTrigger>
           <SelectContent>
-            {[1,2,3,4].map(p => <SelectItem key={p} value={String(p)}>Bimestre {p}</SelectItem>)}
+            {[1,2].map(p => <SelectItem key={p} value={String(p)}>Etapa {p}</SelectItem>)}
           </SelectContent>
         </Select>
       </div>
@@ -48,7 +48,7 @@ const ReporteNotas = () => {
             <TableBody>
               {students.map(st => {
                 const studentGrades = subjects.map(sub => {
-                  const g = mockGrades.find(gr => gr.studentId === st.id && gr.subjectId === sub.id && gr.period === parseInt(selectedPeriod));
+                  const g = mockGrades.find(gr => gr.studentId === st.id && gr.subjectId === sub.id && gr.etapa === parseInt(selectedPeriod));
                   return g?.finalGrade || 0;
                 });
                 const validGrades = studentGrades.filter(g => g > 0);

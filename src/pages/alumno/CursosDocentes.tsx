@@ -3,7 +3,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { mockSubjects, mockTeachers } from '@/lib/mock-data';
 
 const CursosDocentes = () => {
-  const subjects = mockSubjects.filter(s => s.grade === '4to');
+  const subjects = mockSubjects.filter(s => s.grade === '1° Año');
 
   return (
     <div className="space-y-6">

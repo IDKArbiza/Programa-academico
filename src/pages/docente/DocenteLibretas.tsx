@@ -23,7 +23,7 @@ const DocenteLibretas = () => {
         <Select value={selectedStudent} onValueChange={setSelectedStudent}>
           <SelectTrigger className="w-72"><SelectValue /></SelectTrigger>
           <SelectContent>
-            {mockStudents.filter(s => s.grade === '4to').map(s => (
+            {mockStudents.filter(s => s.grade === '1° Año').map(s => (
               <SelectItem key={s.id} value={s.id}>{s.firstName} {s.lastName}</SelectItem>
             ))}
           </SelectContent>
@@ -41,13 +41,13 @@ const DocenteLibretas = () => {
               <thead>
                 <tr className="border-b-2 border-foreground/20">
                   <th className="text-left py-2">Materia</th>
-                  {[1,2,3,4].map(p => <th key={p} className="text-center py-2">Bim {p}</th>)}
+                  {[1,2].map(p => <th key={p} className="text-center py-2">Etapa {p}</th>)}
                   <th className="text-center py-2">Final</th>
                 </tr>
               </thead>
               <tbody>
                 {mySubjects.map(sub => {
-                  const grades = [1,2,3,4].map(p => mockGrades.find(g => g.studentId === selectedStudent && g.subjectId === sub.id && g.period === p)?.finalGrade || 0);
+                  const grades = [1,2].map(p => mockGrades.find(g => g.studentId === selectedStudent && g.subjectId === sub.id && g.etapa === p)?.finalGrade || 0);
                   const valid = grades.filter(g => g > 0);
                   const avg = valid.length ? valid.reduce((a,b) => a+b, 0) / valid.length : 0;
                   return (

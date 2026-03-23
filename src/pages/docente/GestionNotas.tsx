@@ -20,7 +20,7 @@ const GestionNotas = () => {
   const students = mockStudents.filter(s => s.grade === subject?.grade);
 
   const updateGrade = (studentId: string, value: number) => {
-    const existing = grades.findIndex(g => g.studentId === studentId && g.subjectId === selectedSubject && g.period === parseInt(selectedPeriod));
+    const existing = grades.findIndex(g => g.studentId === studentId && g.subjectId === selectedSubject && g.etapa === parseInt(selectedPeriod));
     if (existing >= 0) {
       const updated = [...grades];
       updated[existing] = { ...updated[existing], finalGrade: value };
@@ -30,11 +30,11 @@ const GestionNotas = () => {
         id: `g${Date.now()}`,
         studentId,
         subjectId: selectedSubject,
-        period: parseInt(selectedPeriod),
-        periodType: 'bimestre',
+        etapa: parseInt(selectedPeriod) as 1 | 2,
         year: 2026,
         finalGrade: value,
         criteriaGrades: [],
+        isRecovery: false,
       }]);
     }
   };
@@ -63,7 +63,7 @@ const GestionNotas = () => {
           <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
             <SelectTrigger className="w-48"><SelectValue /></SelectTrigger>
             <SelectContent>
-              {[1,2,3,4].map(p => <SelectItem key={p} value={String(p)}>Bimestre {p}</SelectItem>)}
+              {[1,2].map(p => <SelectItem key={p} value={String(p)}>Etapa {p}</SelectItem>)}
             </SelectContent>
           </Select>
         </div>
@@ -83,7 +83,7 @@ const GestionNotas = () => {
             </TableHeader>
             <TableBody>
               {students.map((st, idx) => {
-                const g = grades.find(gr => gr.studentId === st.id && gr.subjectId === selectedSubject && gr.period === parseInt(selectedPeriod));
+                const g = grades.find(gr => gr.studentId === st.id && gr.subjectId === selectedSubject && gr.etapa === parseInt(selectedPeriod));
                 const nota = g?.finalGrade || 0;
 
                 return (

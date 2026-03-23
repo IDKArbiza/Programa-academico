@@ -24,7 +24,7 @@ const BoletaNotas = () => {
         <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
           <SelectTrigger className="w-48"><SelectValue /></SelectTrigger>
           <SelectContent>
-            {[1,2,3,4].map(p => <SelectItem key={p} value={String(p)}>Bimestre {p}</SelectItem>)}
+            {[1,2].map(p => <SelectItem key={p} value={String(p)}>Etapa {p}</SelectItem>)}
           </SelectContent>
         </Select>
       </div>
@@ -34,12 +34,12 @@ const BoletaNotas = () => {
           <div className="text-center mb-6 pb-4 border-b-2 border-foreground/10">
             <h3 className="text-lg font-bold">BOLETA DE NOTAS</h3>
             <p className="text-xs text-muted-foreground">Bachillerato Técnico en Informática</p>
-            <p className="text-xs text-muted-foreground">Bimestre {period} · Año 2026</p>
+            <p className="text-xs text-muted-foreground">Etapa {period} · Año 2026</p>
           </div>
 
           <div className="grid grid-cols-2 gap-2 text-sm mb-6">
             <p><span className="text-muted-foreground">Alumno:</span> <strong>{student.firstName} {student.lastName}</strong></p>
-            <p><span className="text-muted-foreground">DNI:</span> {student.dni}</p>
+            <p><span className="text-muted-foreground">CI:</span> {student.ci}</p>
             <p><span className="text-muted-foreground">Grado:</span> {student.grade} "{student.section}"</p>
             <p><span className="text-muted-foreground">Apoderado:</span> {student.parentName}</p>
           </div>

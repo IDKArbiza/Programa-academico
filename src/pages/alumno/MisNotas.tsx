@@ -19,7 +19,7 @@ const MisNotas = () => {
         <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
           <SelectTrigger className="w-48"><SelectValue /></SelectTrigger>
           <SelectContent>
-            {[1,2,3,4].map(p => <SelectItem key={p} value={String(p)}>Bimestre {p}</SelectItem>)}
+            {[1,2].map(p => <SelectItem key={p} value={String(p)}>Etapa {p}</SelectItem>)}
           </SelectContent>
         </Select>
       </div>
@@ -37,7 +37,7 @@ const MisNotas = () => {
             </TableHeader>
             <TableBody>
               {subjects.map(sub => {
-                const g = mockGrades.find(gr => gr.studentId === 's1' && gr.subjectId === sub.id && gr.period === parseInt(selectedPeriod));
+                const g = mockGrades.find(gr => gr.studentId === 's1' && gr.subjectId === sub.id && gr.etapa === parseInt(selectedPeriod));
                 const nota = g?.finalGrade || 0;
                 return (
                   <TableRow key={sub.id}>
@@ -62,7 +62,7 @@ const MisNotas = () => {
       </Card>
 
       {/* Detail for criteria */}
-      {mockGrades.filter(g => g.studentId === 's1' && g.period === parseInt(selectedPeriod) && g.criteriaGrades.length > 0).map(g => {
+      {mockGrades.filter(g => g.studentId === 's1' && g.etapa === parseInt(selectedPeriod) && g.criteriaGrades.length > 0).map(g => {
         const sub = mockSubjects.find(s => s.id === g.subjectId);
         return (
           <Card key={g.id}>
