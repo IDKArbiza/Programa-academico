@@ -20,7 +20,7 @@ const AlumnoDashboard = () => {
     <div className="space-y-6">
       <div>
         <h2 className="text-2xl font-bold">Bienvenido, {student.firstName}</h2>
-        <p className="text-muted-foreground">{student.grade} "{student.section}" · Bachillerato Técnico en Informática</p>
+        <p className="text-muted-foreground">{student.grade} "{student.section}" · Colegio CPCC · Nivel Medio</p>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -39,7 +39,7 @@ const AlumnoDashboard = () => {
 
       <Card>
         <CardContent className="p-4">
-          <h3 className="font-semibold mb-3">Mis Notas - Etapa 1</h3>
+          <h3 className="font-semibold mb-3">Mis Notas — Etapa 1</h3>
           <div className="space-y-2">
             {myGrades.map(g => {
               const sub = mockSubjects.find(s => s.id === g.subjectId);

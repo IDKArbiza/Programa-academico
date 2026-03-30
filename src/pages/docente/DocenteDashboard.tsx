@@ -1,23 +1,24 @@
 import { Card, CardContent } from '@/components/ui/card';
-import { Users, ClipboardList, CheckSquare, FileText } from 'lucide-react';
-import { mockStudents, mockSubjects } from '@/lib/mock-data';
+import { Users, ClipboardList, CheckSquare, FileText, Layers } from 'lucide-react';
+import { mockStudents, mockSubjects, mockMonthlySheets } from '@/lib/mock-data';
 
 const DocenteDashboard = () => {
   const mySubjects = mockSubjects.filter(s => s.teacherId === 't1');
   const myStudents = mockStudents.filter(s => mySubjects.some(sub => sub.grade === s.grade));
+  const pendingSheets = mockMonthlySheets.filter(s => s.status === 'borrador').length;
 
   const stats = [
     { label: 'Mis Materias', value: mySubjects.length, icon: <ClipboardList className="h-5 w-5" />, color: 'bg-primary' },
     { label: 'Alumnos', value: myStudents.length, icon: <Users className="h-5 w-5" />, color: 'bg-accent' },
-    { label: 'Asistencias Hoy', value: '85%', icon: <CheckSquare className="h-5 w-5" />, color: 'bg-success' },
-    { label: 'Libretas Pendientes', value: 2, icon: <FileText className="h-5 w-5" />, color: 'bg-warning' },
+    { label: 'Planillas Pendientes', value: pendingSheets, icon: <Layers className="h-5 w-5" />, color: 'bg-warning' },
+    { label: 'Libretas', value: 2, icon: <FileText className="h-5 w-5" />, color: 'bg-success' },
   ];
 
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-bold">Panel del Docente</h2>
-        <p className="text-muted-foreground">Prof. Roberto Vargas Medina · Informática</p>
+        <h2 className="text-2xl font-bold">Panel del Profesor</h2>
+        <p className="text-muted-foreground">Prof. Roberto Vargas Medina · Informática · CPCC</p>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
