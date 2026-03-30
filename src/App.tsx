@@ -8,7 +8,7 @@ import Index from "./pages/Index.tsx";
 import NotFound from "./pages/NotFound.tsx";
 import AppLayout from "./components/AppLayout";
 
-// Director pages
+// Director (Administrador)
 import DirectorDashboard from "./pages/director/DirectorDashboard";
 import Matricula from "./pages/director/Matricula";
 import AcademicYear from "./pages/director/AcademicYear";
@@ -17,16 +17,27 @@ import CriteriosEvaluacion from "./pages/director/CriteriosEvaluacion";
 import ReporteNotas from "./pages/director/ReporteNotas";
 import Libretas from "./pages/director/Libretas";
 import Pagos from "./pages/director/Pagos";
+import DirectorPlanillas from "./pages/director/DirectorPlanillas";
 
-// Docente pages
+// Coordinador
+import CoordinadorDashboard from "./pages/coordinador/CoordinadorDashboard";
+import GestionMaterias from "./pages/coordinador/GestionMaterias";
+import GestionTareas from "./pages/coordinador/GestionTareas";
+import CoordinadorPlanillas from "./pages/coordinador/CoordinadorPlanillas";
+import CoordinadorCalificaciones from "./pages/coordinador/CoordinadorCalificaciones";
+import CoordinadorInformes from "./pages/coordinador/CoordinadorInformes";
+
+// Docente (Profesor)
 import DocenteDashboard from "./pages/docente/DocenteDashboard";
+import PlanillaMensual from "./pages/docente/PlanillaMensual";
 import GestionNotas from "./pages/docente/GestionNotas";
 import GestionAsistencia from "./pages/docente/GestionAsistencia";
+import DocenteTareas from "./pages/docente/DocenteTareas";
 import DocenteCriterios from "./pages/docente/DocenteCriterios";
 import DocenteLibretas from "./pages/docente/DocenteLibretas";
 import Reportes from "./pages/docente/Reportes";
 
-// Alumno pages
+// Alumno
 import AlumnoDashboard from "./pages/alumno/AlumnoDashboard";
 import MisNotas from "./pages/alumno/MisNotas";
 import Horario from "./pages/alumno/Horario";
@@ -45,20 +56,31 @@ const ProtectedRoutes = () => {
   return (
     <AppLayout>
       <Routes>
-        {/* Director */}
+        {/* Director (Administrador) */}
         <Route path="/director" element={<DirectorDashboard />} />
         <Route path="/director/matricula" element={<Matricula />} />
         <Route path="/director/year" element={<AcademicYear />} />
         <Route path="/director/docentes" element={<DocentesMaterias />} />
         <Route path="/director/criterios" element={<CriteriosEvaluacion />} />
+        <Route path="/director/planillas" element={<DirectorPlanillas />} />
         <Route path="/director/notas" element={<ReporteNotas />} />
         <Route path="/director/libretas" element={<Libretas />} />
         <Route path="/director/pagos" element={<Pagos />} />
 
-        {/* Docente */}
+        {/* Coordinador */}
+        <Route path="/coordinador" element={<CoordinadorDashboard />} />
+        <Route path="/coordinador/materias" element={<GestionMaterias />} />
+        <Route path="/coordinador/tareas" element={<GestionTareas />} />
+        <Route path="/coordinador/planillas" element={<CoordinadorPlanillas />} />
+        <Route path="/coordinador/calificaciones" element={<CoordinadorCalificaciones />} />
+        <Route path="/coordinador/informes" element={<CoordinadorInformes />} />
+
+        {/* Docente (Profesor) */}
         <Route path="/docente" element={<DocenteDashboard />} />
+        <Route path="/docente/planilla" element={<PlanillaMensual />} />
         <Route path="/docente/notas" element={<GestionNotas />} />
         <Route path="/docente/asistencia" element={<GestionAsistencia />} />
+        <Route path="/docente/tareas" element={<DocenteTareas />} />
         <Route path="/docente/criterios" element={<DocenteCriterios />} />
         <Route path="/docente/libretas" element={<DocenteLibretas />} />
         <Route path="/docente/reportes" element={<Reportes />} />
