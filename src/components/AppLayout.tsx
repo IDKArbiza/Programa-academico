@@ -3,9 +3,10 @@ import { useAppStore } from '@/lib/store';
 import { UserRole } from '@/lib/types';
 import { Link, useLocation } from 'react-router-dom';
 import {
-  GraduationCap, BookOpen, Shield, LogOut, Menu, X,
+  GraduationCap, BookOpen, Shield, LogOut, Menu,
   BarChart3, Users, Calendar, CreditCard, FileText,
-  ClipboardList, CheckSquare, Settings, Printer, BookMarked, Home
+  ClipboardList, CheckSquare, Settings, Printer, BookMarked, Home,
+  Layers, ListTodo
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -22,14 +23,25 @@ const navItems: Record<UserRole, NavItem[]> = {
     { label: 'Año Académico', path: '/director/year', icon: <Calendar className="h-4 w-4" /> },
     { label: 'Docentes y Materias', path: '/director/docentes', icon: <BookOpen className="h-4 w-4" /> },
     { label: 'Criterios Evaluación', path: '/director/criterios', icon: <ClipboardList className="h-4 w-4" /> },
+    { label: 'Planillas Mensuales', path: '/director/planillas', icon: <Layers className="h-4 w-4" /> },
     { label: 'Reporte de Notas', path: '/director/notas', icon: <BarChart3 className="h-4 w-4" /> },
     { label: 'Libretas', path: '/director/libretas', icon: <FileText className="h-4 w-4" /> },
     { label: 'Pagos', path: '/director/pagos', icon: <CreditCard className="h-4 w-4" /> },
   ],
+  coordinador: [
+    { label: 'Inicio', path: '/coordinador', icon: <Home className="h-4 w-4" /> },
+    { label: 'Gestionar Materias', path: '/coordinador/materias', icon: <BookOpen className="h-4 w-4" /> },
+    { label: 'Gestionar Tareas', path: '/coordinador/tareas', icon: <ListTodo className="h-4 w-4" /> },
+    { label: 'Planillas Mensuales', path: '/coordinador/planillas', icon: <Layers className="h-4 w-4" /> },
+    { label: 'Calificaciones', path: '/coordinador/calificaciones', icon: <ClipboardList className="h-4 w-4" /> },
+    { label: 'Informes', path: '/coordinador/informes', icon: <Printer className="h-4 w-4" /> },
+  ],
   docente: [
     { label: 'Inicio', path: '/docente', icon: <Home className="h-4 w-4" /> },
+    { label: 'Planilla Mensual', path: '/docente/planilla', icon: <Layers className="h-4 w-4" /> },
     { label: 'Gestión de Notas', path: '/docente/notas', icon: <ClipboardList className="h-4 w-4" /> },
     { label: 'Asistencia', path: '/docente/asistencia', icon: <CheckSquare className="h-4 w-4" /> },
+    { label: 'Tareas', path: '/docente/tareas', icon: <ListTodo className="h-4 w-4" /> },
     { label: 'Criterios', path: '/docente/criterios', icon: <Settings className="h-4 w-4" /> },
     { label: 'Libretas', path: '/docente/libretas', icon: <FileText className="h-4 w-4" /> },
     { label: 'Reportes', path: '/docente/reportes', icon: <Printer className="h-4 w-4" /> },
@@ -46,13 +58,15 @@ const navItems: Record<UserRole, NavItem[]> = {
 };
 
 const roleLabels: Record<UserRole, string> = {
-  director: 'Director',
-  docente: 'Docente',
+  director: 'Administrador',
+  coordinador: 'Coordinador',
+  docente: 'Profesor',
   alumno: 'Alumno',
 };
 
 const roleIcons: Record<UserRole, React.ReactNode> = {
   director: <Shield className="h-5 w-5" />,
+  coordinador: <Layers className="h-5 w-5" />,
   docente: <BookOpen className="h-5 w-5" />,
   alumno: <GraduationCap className="h-5 w-5" />,
 };
@@ -68,12 +82,10 @@ const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
   return (
     <div className="min-h-screen flex bg-background">
-      {/* Mobile overlay */}
       {sidebarOpen && (
         <div className="fixed inset-0 bg-foreground/20 z-40 lg:hidden" onClick={() => setSidebarOpen(false)} />
       )}
 
-      {/* Sidebar */}
       <aside className={`fixed lg:sticky top-0 left-0 z-50 h-screen w-64 bg-sidebar text-sidebar-foreground flex flex-col transition-transform duration-200 ${
         sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
       }`}>
@@ -83,8 +95,8 @@ const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
               <GraduationCap className="h-5 w-5" />
             </div>
             <div>
-              <h2 className="font-bold text-sm">Sistema Académico</h2>
-              <p className="text-xs opacity-70">Bach. Técnico Informática</p>
+              <h2 className="font-bold text-sm">Colegio CPCC</h2>
+              <p className="text-xs opacity-70">Nivel Medio · Informática</p>
             </div>
           </div>
         </div>
@@ -126,14 +138,13 @@ const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         </div>
       </aside>
 
-      {/* Main */}
       <div className="flex-1 flex flex-col min-h-screen">
         <header className="sticky top-0 z-30 bg-card/80 backdrop-blur-md border-b border-border px-4 py-3 flex items-center gap-3 no-print">
           <Button variant="ghost" size="icon" className="lg:hidden" onClick={() => setSidebarOpen(true)}>
             <Menu className="h-5 w-5" />
           </Button>
           <h1 className="text-lg font-semibold text-foreground">
-            Panel {roleLabels[currentRole]}
+            Panel {roleLabels[currentRole]} — CPCC
           </h1>
         </header>
         <main className="flex-1 p-4 md:p-6 animate-fade-in">

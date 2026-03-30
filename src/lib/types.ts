@@ -1,4 +1,4 @@
-export type UserRole = 'director' | 'docente' | 'alumno';
+export type UserRole = 'director' | 'coordinador' | 'docente' | 'alumno';
 
 // Sistema educativo CPCC: 2 etapas por año
 export type PeriodType = 'etapa';
@@ -15,19 +15,19 @@ export interface Student {
   id: string;
   firstName: string;
   lastName: string;
-  ci: string; // Cédula de identidad paraguaya
-  cedula?: string; // CI paraguaya
+  ci: string;
+  cedula?: string;
   grade: string; // "1° Año", "2° Año", "3° Año"
-  section: string; // "A", "B", "C"
-  turn: 'mañana' | 'tarde'; // Turnos disponibles en CPCC
+  section: string;
+  turn: 'mañana' | 'tarde';
   enrollmentDate: string;
   status: 'activo' | 'inactivo' | 'retirado' | 'trasladado';
   parentName: string;
   parentPhone: string;
-  parentCi?: string; // CI del padre/tutor
+  parentCi?: string;
   address: string;
   city: string;
-  department: string; // Departamento de Paraguay
+  department: string;
   birthDate: string;
   nationality: 'paraguayo' | 'extranjero';
   previousSchool?: string;
@@ -37,47 +37,74 @@ export interface Teacher {
   id: string;
   firstName: string;
   lastName: string;
-  ci: string; // Cédula de identidad paraguaya
-  cedula: string; // CI paraguaya obligatoria
+  ci: string;
+  cedula: string;
   specialty: string;
-  title: string; // Título profesional
+  title: string;
   phone: string;
   email: string;
   subjects: string[];
   hireDate: string;
   contractType: 'permanente' | 'temporal' | 'suplente';
-  category: string; // Categoría magisterial
+  category: string;
 }
 
 export interface Subject {
   id: string;
   name: string;
-  code: string; // Código de asignatura MEC
-  grade: string; // "1° Año", "2° Año", "3° Año"
+  code: string;
+  grade: string;
   teacherId: string;
   hoursPerWeek: number;
   area: 'lenguaje' | 'ciencias' | 'matematica' | 'sociales' | 'artistica' | 'fisica' | 'tecnica';
   isMandatory: boolean;
 }
 
+// Planilla de puntaje mensual - foco principal del sistema
+export interface MonthlyGradeSheet {
+  id: string;
+  subjectId: string;
+  teacherId: string;
+  grade: string;
+  section: string;
+  month: number; // 1-12
+  year: number;
+  etapa: 1 | 2;
+  entries: MonthlyGradeEntry[];
+  status: 'borrador' | 'enviado' | 'aprobado';
+  submittedDate?: string;
+  approvedBy?: string;
+}
+
+export interface MonthlyGradeEntry {
+  studentId: string;
+  grades: {
+    criteriaId: string;
+    grade: number; // 1-5
+  }[];
+  finalGrade: number; // 1-5
+  observations?: string;
+}
+
 export interface Grade {
   id: string;
   studentId: string;
   subjectId: string;
-  etapa: 1 | 2; // 2 etapas al año
+  etapa: 1 | 2;
   criteriaGrades: CriteriaGrade[];
   finalGrade: number; // 1-5 escala paraguaya
   year: number;
-  recoveryGrade?: number; // Nota de recuperación
-  isRecovery: boolean; // Si es nota de recuperación
+  month?: number; // mes de la calificación
+  recoveryGrade?: number;
+  isRecovery: boolean;
 }
 
 export interface EvaluationCriteria {
   id: string;
   name: string;
-  weight: number; // porcentaje
+  weight: number;
   subjectId: string;
-  etapa: 1 | 2; // 2 etapas al año
+  etapa: 1 | 2;
   type: 'trabajo' | 'examen' | 'participacion' | 'practico' | 'cuaderno';
 }
 
@@ -102,7 +129,7 @@ export interface Payment {
   id: string;
   studentId: string;
   concept: string;
-  amount: number; // En guaraníes
+  amount: number;
   dueDate: string;
   paidDate?: string;
   status: 'pendiente' | 'pagado' | 'vencido' | 'cuota';
@@ -117,19 +144,19 @@ export interface ScheduleEntry {
   subjectId: string;
   subjectName: string;
   teacherName: string;
-  dayOfWeek: number; // 1=Lunes, 2=Martes...
+  dayOfWeek: number;
   startTime: string;
   endTime: string;
-  grade: string; // "1° Año", "2° Año", "3° Año"
+  grade: string;
   section: string;
-  classroom: string; // Aula asignada
+  classroom: string;
   turn: 'mañana' | 'tarde';
 }
 
 export interface AcademicYear {
   id: string;
   year: number;
-  periodType: PeriodType; // Siempre 'etapa'
+  periodType: PeriodType;
   startDate: string;
   endDate: string;
   status: 'activo' | 'cerrado' | 'planificado';
@@ -139,12 +166,11 @@ export interface AcademicYear {
   };
 }
 
-// Nuevos tipos para sistema paraguayo
 export interface BoletaNotas {
   id: string;
   studentId: string;
   year: number;
-  etapa: 1 | 2; // 2 etapas al año
+  etapa: 1 | 2;
   grades: {
     subjectId: string;
     subjectName: string;
@@ -160,7 +186,7 @@ export interface BoletaNotas {
     tardy: number;
     justified: number;
   };
-  conducta: 1 | 2 | 3 | 4 | 5; // Escala 1-5
+  conducta: 1 | 2 | 3 | 4 | 5;
   observaciones: string;
   generatedDate: string;
   directorSignature: string;
@@ -170,7 +196,7 @@ export interface BoletaNotas {
 export interface Colegio {
   id: string;
   name: string;
-  code: string; // Código MEC
+  code: string;
   address: string;
   city: string;
   department: string;
@@ -180,4 +206,19 @@ export interface Colegio {
   tipo: 'publico' | 'privado' | 'subvencionado';
   niveles: ('inicial' | 'primario' | 'secundario')[];
   turno: ('mañana' | 'tarde')[];
+}
+
+// Tarea asignada por docente
+export interface Task {
+  id: string;
+  subjectId: string;
+  teacherId: string;
+  title: string;
+  description: string;
+  dueDate: string;
+  grade: string;
+  section: string;
+  type: 'tarea' | 'proyecto' | 'investigacion' | 'examen';
+  status: 'activa' | 'cerrada';
+  createdDate: string;
 }
