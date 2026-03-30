@@ -54,7 +54,7 @@ const BoletaNotas = () => {
             </thead>
             <tbody>
               {subjects.map(sub => {
-                const g = mockGrades.find(gr => gr.studentId === 's1' && gr.subjectId === sub.id && gr.period === period);
+                const g = mockGrades.find(gr => gr.studentId === 's1' && gr.subjectId === sub.id && gr.etapa === period);
                 const nota = g?.finalGrade || 0;
                 return (
                   <tr key={sub.id} className="border-b border-border">
