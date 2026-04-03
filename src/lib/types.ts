@@ -146,7 +146,6 @@ export interface ScheduleEntry {
   startTime: string;
   endTime: string;
   grade: string;
-  section: string;
   classroom: string;
   turn: 'mañana' | 'tarde';
 }
