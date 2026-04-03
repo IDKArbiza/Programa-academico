@@ -35,7 +35,7 @@ const DocenteLibretas = () => {
           <CardContent className="p-6">
             <div className="text-center mb-4 pb-4 border-b border-border">
               <h3 className="font-bold text-lg">LIBRETA DE NOTAS</h3>
-              <p className="text-sm text-muted-foreground">{student.firstName} {student.lastName} · {student.grade} "{student.section}"</p>
+              <p className="text-sm text-muted-foreground">{student.firstName} {student.lastName} · {student.grade}</p>
             </div>
             <table className="w-full text-sm">
               <thead>

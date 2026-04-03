@@ -61,7 +61,7 @@ const GestionTareas = () => {
                     </TableCell>
                     <TableCell>{sub?.name}</TableCell>
                     <TableCell>{teacher?.firstName} {teacher?.lastName}</TableCell>
-                    <TableCell>{task.grade} "{task.section}"</TableCell>
+                    <TableCell>{task.grade}</TableCell>
                     <TableCell><Badge variant="secondary">{task.type}</Badge></TableCell>
                     <TableCell>{task.dueDate}</TableCell>
                     <TableCell>

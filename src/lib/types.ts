@@ -18,7 +18,6 @@ export interface Student {
   ci: string;
   cedula?: string;
   grade: string; // "1° Año", "2° Año", "3° Año"
-  section: string;
   turn: 'mañana' | 'tarde';
   enrollmentDate: string;
   status: 'activo' | 'inactivo' | 'retirado' | 'trasladado';
@@ -66,7 +65,6 @@ export interface MonthlyGradeSheet {
   subjectId: string;
   teacherId: string;
   grade: string;
-  section: string;
   month: number; // 1-12
   year: number;
   etapa: 1 | 2;
@@ -148,7 +146,6 @@ export interface ScheduleEntry {
   startTime: string;
   endTime: string;
   grade: string;
-  section: string;
   classroom: string;
   turn: 'mañana' | 'tarde';
 }
@@ -217,7 +214,6 @@ export interface Task {
   description: string;
   dueDate: string;
   grade: string;
-  section: string;
   type: 'tarea' | 'proyecto' | 'investigacion' | 'examen';
   status: 'activa' | 'cerrada';
   createdDate: string;

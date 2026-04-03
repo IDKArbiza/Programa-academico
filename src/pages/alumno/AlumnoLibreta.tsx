@@ -20,7 +20,7 @@ const AlumnoLibreta = () => {
             <h3 className="text-xl font-bold">LIBRETA DE NOTAS</h3>
             <p className="text-sm text-muted-foreground">Bachillerato Técnico en Informática · Año 2026</p>
             <p className="font-semibold mt-2">{student.firstName} {student.lastName}</p>
-            <p className="text-sm text-muted-foreground">{student.grade} "{student.section}" · CI: {student.ci}</p>
+            <p className="text-sm text-muted-foreground">{student.grade} · CI: {student.ci}</p>
           </div>
 
           <table className="w-full text-sm">
