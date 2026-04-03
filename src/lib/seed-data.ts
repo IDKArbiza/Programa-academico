@@ -83,7 +83,6 @@ export const seedInitialData = async () => {
         lastName: 'Rodríguez',
         ci: '45678912',
         grade: '3° Año',
-        section: 'A',
         turn: 'mañana',
         enrollmentDate: '2026-03-01',
         status: 'activo',

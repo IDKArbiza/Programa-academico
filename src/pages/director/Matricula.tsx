@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -15,7 +15,7 @@ const Matricula = () => {
   const [students, setStudents] = useState<Student[]>(mockStudents);
   const [search, setSearch] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [form, setForm] = useState<Partial<Student>>({ grade: '1° Año', section: 'A', status: 'activo' });
+  const [form, setForm] = useState<Partial<Student>>({ grade: '1° Año', status: 'activo' });
 
   const filtered = students.filter(s =>
     `${s.firstName} ${s.lastName} ${s.ci}`.toLowerCase().includes(search.toLowerCase())
@@ -28,7 +28,6 @@ const Matricula = () => {
       lastName: form.lastName || '',
       ci: form.ci || '',
       grade: form.grade || '1° Año',
-      section: form.section || 'A',
       turn: form.turn || 'mañana',
       enrollmentDate: new Date().toISOString().split('T')[0],
       status: 'activo',
@@ -42,7 +41,7 @@ const Matricula = () => {
     };
     setStudents([...students, newStudent]);
     setDialogOpen(false);
-    setForm({ grade: '1° Año', section: 'A', status: 'activo', turn: 'mañana' });
+    setForm({ grade: '1° Año', status: 'activo', turn: 'mañana' });
   };
 
   return (
@@ -76,20 +75,11 @@ const Matricula = () => {
                   <Input value={form.ci || ''} onChange={e => setForm({...form, ci: e.target.value})} />
                 </div>
                 <div className="space-y-2">
-                  <Label>Grado</Label>
+                  <Label>Curso</Label>
                   <Select value={form.grade} onValueChange={v => setForm({...form, grade: v})}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
                       {['1° Año','2° Año','3° Año'].map(g => <SelectItem key={g} value={g}>{g}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label>Sección</Label>
-                  <Select value={form.section} onValueChange={v => setForm({...form, section: v})}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {['A','B','C'].map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
                     </SelectContent>
                   </Select>
                 </div>
@@ -124,7 +114,7 @@ const Matricula = () => {
               <TableRow>
                 <TableHead>Alumno</TableHead>
                 <TableHead>CI</TableHead>
-                <TableHead>Grado</TableHead>
+                <TableHead>Curso</TableHead>
                 <TableHead>Apoderado</TableHead>
                 <TableHead>Estado</TableHead>
               </TableRow>
@@ -134,7 +124,7 @@ const Matricula = () => {
                 <TableRow key={s.id}>
                   <TableCell className="font-medium">{s.firstName} {s.lastName}</TableCell>
                   <TableCell>{s.ci}</TableCell>
-                  <TableCell>{s.grade} "{s.section}"</TableCell>
+                  <TableCell>{s.grade}</TableCell>
                   <TableCell>{s.parentName}</TableCell>
                   <TableCell>
                     <Badge variant={s.status === 'activo' ? 'default' : 'destructive'}>
