@@ -18,7 +18,6 @@ export interface Student {
   ci: string;
   cedula?: string;
   grade: string; // "1° Año", "2° Año", "3° Año"
-  section: string;
   turn: 'mañana' | 'tarde';
   enrollmentDate: string;
   status: 'activo' | 'inactivo' | 'retirado' | 'trasladado';
