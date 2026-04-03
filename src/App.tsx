@@ -94,6 +94,7 @@ const ProtectedRoutes = () => {
         <Route path="/alumno/deudas" element={<EstadoDeudas />} />
         <Route path="/alumno/libreta" element={<AlumnoLibreta />} />
         <Route path="/alumno/boleta" element={<BoletaNotas />} />
+        <Route path="/alumno/planillas" element={<MisPlanillas />} />
 
         <Route path="*" element={<NotFound />} />
       </Routes>

@@ -48,6 +48,7 @@ const navItems: Record<UserRole, NavItem[]> = {
   ],
   alumno: [
     { label: 'Inicio', path: '/alumno', icon: <Home className="h-4 w-4" /> },
+    { label: 'Mis Planillas', path: '/alumno/planillas', icon: <Layers className="h-4 w-4" /> },
     { label: 'Mis Notas', path: '/alumno/notas', icon: <BarChart3 className="h-4 w-4" /> },
     { label: 'Horario', path: '/alumno/horario', icon: <Calendar className="h-4 w-4" /> },
     { label: 'Cursos y Docentes', path: '/alumno/cursos', icon: <BookMarked className="h-4 w-4" /> },
