@@ -65,7 +65,6 @@ export interface MonthlyGradeSheet {
   subjectId: string;
   teacherId: string;
   grade: string;
-  section: string;
   month: number; // 1-12
   year: number;
   etapa: 1 | 2;
