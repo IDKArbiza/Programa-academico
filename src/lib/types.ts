@@ -214,7 +214,6 @@ export interface Task {
   description: string;
   dueDate: string;
   grade: string;
-  section: string;
   type: 'tarea' | 'proyecto' | 'investigacion' | 'examen';
   status: 'activa' | 'cerrada';
   createdDate: string;
