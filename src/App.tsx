@@ -45,6 +45,7 @@ import CursosDocentes from "./pages/alumno/CursosDocentes";
 import EstadoDeudas from "./pages/alumno/EstadoDeudas";
 import AlumnoLibreta from "./pages/alumno/AlumnoLibreta";
 import BoletaNotas from "./pages/alumno/BoletaNotas";
+import MisPlanillas from "./pages/alumno/MisPlanillas";
 
 const queryClient = new QueryClient();
 
