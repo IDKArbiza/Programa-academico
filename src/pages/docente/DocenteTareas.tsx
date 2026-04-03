@@ -56,7 +56,7 @@ const DocenteTareas = () => {
                       <p className="text-xs text-muted-foreground">{task.description}</p>
                     </TableCell>
                     <TableCell>{sub?.name}</TableCell>
-                    <TableCell>{task.grade} "{task.section}"</TableCell>
+                    <TableCell>{task.grade}</TableCell>
                     <TableCell><Badge variant="secondary">{task.type}</Badge></TableCell>
                     <TableCell>{task.dueDate}</TableCell>
                     <TableCell><Badge variant={task.status === 'activa' ? 'default' : 'secondary'}>{task.status}</Badge></TableCell>

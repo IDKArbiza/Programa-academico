@@ -52,7 +52,7 @@ const DirectorPlanillas = () => {
             <CardContent className="p-4">
               <div className="flex justify-between items-center mb-4">
                 <div>
-                  <h3 className="font-semibold">{sub?.name} — {sheet.grade} "{sheet.section}"</h3>
+                  <h3 className="font-semibold">{sub?.name} — {sheet.grade}</h3>
                   <p className="text-sm text-muted-foreground">{monthName} 2026 · Etapa {sheet.etapa}</p>
                 </div>
                 <div className="flex gap-2 items-center">

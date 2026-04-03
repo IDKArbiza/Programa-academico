@@ -40,7 +40,7 @@ const BoletaNotas = () => {
           <div className="grid grid-cols-2 gap-2 text-sm mb-6">
             <p><span className="text-muted-foreground">Alumno:</span> <strong>{student.firstName} {student.lastName}</strong></p>
             <p><span className="text-muted-foreground">CI:</span> {student.ci}</p>
-            <p><span className="text-muted-foreground">Grado:</span> {student.grade} "{student.section}"</p>
+            <p><span className="text-muted-foreground">Grado:</span> {student.grade}</p>
             <p><span className="text-muted-foreground">Apoderado:</span> {student.parentName}</p>
           </div>
 

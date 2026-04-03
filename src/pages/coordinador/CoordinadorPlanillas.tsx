@@ -62,7 +62,7 @@ const CoordinadorPlanillas = () => {
                   <TableRow key={sheet.id}>
                     <TableCell className="font-medium">{sub?.name}</TableCell>
                     <TableCell>{teacher?.firstName} {teacher?.lastName}</TableCell>
-                    <TableCell>{sheet.grade} "{sheet.section}"</TableCell>
+                    <TableCell>{sheet.grade}</TableCell>
                     <TableCell>{monthName}</TableCell>
                     <TableCell>Etapa {sheet.etapa}</TableCell>
                     <TableCell className="text-center">{sheet.entries.length}</TableCell>
