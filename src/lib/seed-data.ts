@@ -7,19 +7,25 @@ export const seedInitialData = async () => {
     const users: Omit<User, 'id'>[] = [
       {
         name: 'Carlos Rodríguez',
-        email: 'director@colegio.edu',
+        email: '1234567@cpcc.com',
         role: 'director',
         avatar: ''
       },
       {
         name: 'María García',
-        email: 'docente@colegio.edu',
+        email: '2345678@cpcc.com',
+        role: 'coordinador',
+        avatar: ''
+      },
+      {
+        name: 'Roberto Sánchez',
+        email: '3456789@cpcc.com',
         role: 'docente',
         avatar: ''
       },
       {
         name: 'Juan Pérez',
-        email: 'alumno@colegio.edu',
+        email: '4567890@cpcc.com',
         role: 'alumno',
         avatar: ''
       }

@@ -11,7 +11,7 @@ const populateDatabase = async () => {
     if (success) {
       console.log('✅ Base de datos poblada exitosamente');
       console.log('📊 Datos creados:');
-      console.log('   - 3 usuarios (director, docente, alumno)');
+      console.log('   - 4 usuarios (director, coordinador, docente, alumno)');
       console.log('   - 3 estudiantes (1°, 2°, 3° año)');
       console.log('   - 2 docentes con categorías magisteriales');
       console.log('   - 3 asignaturas con códigos MEC');
