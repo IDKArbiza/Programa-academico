@@ -4,9 +4,7 @@ import { UserRole } from '@/lib/types';
 import { Link, useLocation } from 'react-router-dom';
 import {
   GraduationCap, BookOpen, Shield, LogOut, Menu,
-  BarChart3, Users, Calendar, CreditCard, FileText,
-  ClipboardList, CheckSquare, Settings, Printer, BookMarked, Home,
-  Layers, ListTodo
+  Layers, Home, Users, UserPlus, FolderOpen
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -19,42 +17,22 @@ interface NavItem {
 const navItems: Record<UserRole, NavItem[]> = {
   director: [
     { label: 'Inicio', path: '/director', icon: <Home className="h-4 w-4" /> },
-    { label: 'Matrícula', path: '/director/matricula', icon: <Users className="h-4 w-4" /> },
-    { label: 'Año Académico', path: '/director/year', icon: <Calendar className="h-4 w-4" /> },
-    { label: 'Docentes y Materias', path: '/director/docentes', icon: <BookOpen className="h-4 w-4" /> },
-    { label: 'Criterios Evaluación', path: '/director/criterios', icon: <ClipboardList className="h-4 w-4" /> },
     { label: 'Planillas Mensuales', path: '/director/planillas', icon: <Layers className="h-4 w-4" /> },
-    { label: 'Reporte de Notas', path: '/director/notas', icon: <BarChart3 className="h-4 w-4" /> },
-    { label: 'Libretas', path: '/director/libretas', icon: <FileText className="h-4 w-4" /> },
-    { label: 'Pagos', path: '/director/pagos', icon: <CreditCard className="h-4 w-4" /> },
+    { label: 'Gestión de Cursos', path: '/director/cursos', icon: <FolderOpen className="h-4 w-4" /> },
+    { label: 'Gestión de Cuentas', path: '/director/cuentas', icon: <UserPlus className="h-4 w-4" /> },
   ],
   coordinador: [
     { label: 'Inicio', path: '/coordinador', icon: <Home className="h-4 w-4" /> },
-    { label: 'Gestionar Materias', path: '/coordinador/materias', icon: <BookOpen className="h-4 w-4" /> },
-    { label: 'Gestionar Tareas', path: '/coordinador/tareas', icon: <ListTodo className="h-4 w-4" /> },
     { label: 'Planillas Mensuales', path: '/coordinador/planillas', icon: <Layers className="h-4 w-4" /> },
-    { label: 'Calificaciones', path: '/coordinador/calificaciones', icon: <ClipboardList className="h-4 w-4" /> },
-    { label: 'Informes', path: '/coordinador/informes', icon: <Printer className="h-4 w-4" /> },
+    { label: 'Gestión de Cursos', path: '/coordinador/cursos', icon: <FolderOpen className="h-4 w-4" /> },
   ],
   docente: [
     { label: 'Inicio', path: '/docente', icon: <Home className="h-4 w-4" /> },
-    { label: 'Planilla Mensual', path: '/docente/planilla', icon: <Layers className="h-4 w-4" /> },
-    { label: 'Gestión de Notas', path: '/docente/notas', icon: <ClipboardList className="h-4 w-4" /> },
-    { label: 'Asistencia', path: '/docente/asistencia', icon: <CheckSquare className="h-4 w-4" /> },
-    { label: 'Tareas', path: '/docente/tareas', icon: <ListTodo className="h-4 w-4" /> },
-    { label: 'Criterios', path: '/docente/criterios', icon: <Settings className="h-4 w-4" /> },
-    { label: 'Libretas', path: '/docente/libretas', icon: <FileText className="h-4 w-4" /> },
-    { label: 'Reportes', path: '/docente/reportes', icon: <Printer className="h-4 w-4" /> },
+    { label: 'Planillas Mensuales', path: '/docente/planillas', icon: <Layers className="h-4 w-4" /> },
   ],
   alumno: [
     { label: 'Inicio', path: '/alumno', icon: <Home className="h-4 w-4" /> },
     { label: 'Mis Planillas', path: '/alumno/planillas', icon: <Layers className="h-4 w-4" /> },
-    { label: 'Mis Notas', path: '/alumno/notas', icon: <BarChart3 className="h-4 w-4" /> },
-    { label: 'Horario', path: '/alumno/horario', icon: <Calendar className="h-4 w-4" /> },
-    { label: 'Cursos y Docentes', path: '/alumno/cursos', icon: <BookMarked className="h-4 w-4" /> },
-    { label: 'Estado de Deudas', path: '/alumno/deudas', icon: <CreditCard className="h-4 w-4" /> },
-    { label: 'Libreta', path: '/alumno/libreta', icon: <FileText className="h-4 w-4" /> },
-    { label: 'Boleta de Notas', path: '/alumno/boleta', icon: <Printer className="h-4 w-4" /> },
   ],
 };
 
@@ -67,13 +45,13 @@ const roleLabels: Record<UserRole, string> = {
 
 const roleIcons: Record<UserRole, React.ReactNode> = {
   director: <Shield className="h-5 w-5" />,
-  coordinador: <Layers className="h-5 w-5" />,
+  coordinador: <Users className="h-5 w-5" />,
   docente: <BookOpen className="h-5 w-5" />,
   alumno: <GraduationCap className="h-5 w-5" />,
 };
 
 const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { currentRole, logout } = useAppStore();
+  const { currentRole, user, logout } = useAppStore();
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
@@ -126,7 +104,10 @@ const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         <div className="p-3 border-t border-sidebar-border">
           <div className="flex items-center gap-2 px-3 py-2 mb-2">
             {roleIcons[currentRole]}
-            <span className="text-sm font-medium">{roleLabels[currentRole]}</span>
+            <div>
+              <span className="text-sm font-medium block">{roleLabels[currentRole]}</span>
+              {user && <span className="text-xs opacity-70">{user.name}</span>}
+            </div>
           </div>
           <Button
             variant="ghost"
