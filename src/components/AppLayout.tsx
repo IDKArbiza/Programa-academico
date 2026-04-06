@@ -4,7 +4,7 @@ import { UserRole } from '@/lib/types';
 import { Link, useLocation } from 'react-router-dom';
 import {
   GraduationCap, BookOpen, Shield, LogOut, Menu,
-  Layers, Home, Users, UserPlus, FolderOpen
+  Layers, Home, Users, UserPlus, FolderOpen, ClipboardCheck
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -18,12 +18,14 @@ const navItems: Record<UserRole, NavItem[]> = {
   director: [
     { label: 'Inicio', path: '/director', icon: <Home className="h-4 w-4" /> },
     { label: 'Planillas Mensuales', path: '/director/planillas', icon: <Layers className="h-4 w-4" /> },
+    { label: 'Revisar Planillas', path: '/director/revisar', icon: <ClipboardCheck className="h-4 w-4" /> },
     { label: 'Gestión de Cursos', path: '/director/cursos', icon: <FolderOpen className="h-4 w-4" /> },
     { label: 'Gestión de Cuentas', path: '/director/cuentas', icon: <UserPlus className="h-4 w-4" /> },
   ],
   coordinador: [
     { label: 'Inicio', path: '/coordinador', icon: <Home className="h-4 w-4" /> },
     { label: 'Planillas Mensuales', path: '/coordinador/planillas', icon: <Layers className="h-4 w-4" /> },
+    { label: 'Revisar Planillas', path: '/coordinador/revisar', icon: <ClipboardCheck className="h-4 w-4" /> },
     { label: 'Gestión de Cursos', path: '/coordinador/cursos', icon: <FolderOpen className="h-4 w-4" /> },
   ],
   docente: [
