@@ -17,6 +17,7 @@ import PlanillaMensual from "./pages/docente/PlanillaMensual";
 
 import CoordinadorDashboard from "./pages/coordinador/CoordinadorDashboard";
 import GestionCursos from "./pages/coordinador/GestionCursos";
+import RevisarPlanillas from "./pages/coordinador/RevisarPlanillas";
 
 import DirectorDashboard from "./pages/director/DirectorDashboard";
 import GestionCuentas from "./pages/director/GestionCuentas";
@@ -42,11 +43,13 @@ const ProtectedRoutes = () => {
         {/* Coordinador - hereda planillas + gestión cursos */}
         <Route path="/coordinador" element={<CoordinadorDashboard />} />
         <Route path="/coordinador/planillas" element={<PlanillaMensual />} />
+        <Route path="/coordinador/revisar" element={<RevisarPlanillas />} />
         <Route path="/coordinador/cursos" element={<GestionCursos />} />
 
         {/* Administrador - hereda todo + gestión cuentas */}
         <Route path="/director" element={<DirectorDashboard />} />
         <Route path="/director/planillas" element={<PlanillaMensual />} />
+        <Route path="/director/revisar" element={<RevisarPlanillas />} />
         <Route path="/director/cursos" element={<GestionCursos />} />
         <Route path="/director/cuentas" element={<GestionCuentas />} />
 
