@@ -1,25 +1,30 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { mockSubjects, mockStudents, mockMonthlySheets, ALL_MONTHS } from '@/lib/mock-data';
+import { mockSubjects, mockStudents, ALL_MONTHS } from '@/lib/mock-data';
 import { Label } from '@/components/ui/label';
-import { Layers, Eye } from 'lucide-react';
-
-// Simulated logged-in student
-const STUDENT_ID = 's1';
+import { Layers, Eye, Lock } from 'lucide-react';
+import { usePlanillasStore } from '@/lib/planillas-store';
+import { useAppStore } from '@/lib/store';
 
 const MisPlanillas = () => {
-  const student = mockStudents.find(s => s.id === STUDENT_ID)!;
+  const { user } = useAppStore();
+  const { planillas, fetchPlanillas, loading } = usePlanillasStore();
+
+  useEffect(() => { fetchPlanillas(); }, []);
+
+  // Find student by logged-in user
+  const STUDENT_ID = user?.id || 's1';
+  const student = mockStudents.find(s => s.id === STUDENT_ID) || mockStudents[0];
   const subjects = mockSubjects.filter(s => s.grade === student.grade);
   const [selectedMonth, setSelectedMonth] = useState('3');
-
   const month = parseInt(selectedMonth);
   const monthName = ALL_MONTHS.find(m => m.month === month)?.name || '';
 
-  // Get sheets for this student's grade and selected month
-  const sheets = mockMonthlySheets.filter(
-    ms => ms.grade === student.grade && ms.month === month
+  // Only show APPROVED planillas for this student's grade
+  const approvedPlanillas = planillas.filter(
+    p => p.status === 'aprobado' && p.grade === student.grade && p.month === month && p.year === 2026
   );
 
   return (
@@ -29,7 +34,8 @@ const MisPlanillas = () => {
         <div>
           <h2 className="text-2xl font-bold">Mis Planillas Mensuales</h2>
           <p className="text-sm text-muted-foreground">
-            Consultá tus puntajes mensuales por materia — solo vos podés ver tus datos
+            <Lock className="h-3 w-3 inline mr-1" />
+            Solo podés ver tus puntajes — aprobados por el Coordinador
           </p>
         </div>
       </div>
@@ -48,7 +54,7 @@ const MisPlanillas = () => {
         </div>
         <div className="text-sm text-muted-foreground pb-2">
           <Eye className="h-4 w-4 inline mr-1" />
-          Solo se muestran tus puntajes personales
+          Solo se muestran planillas aprobadas
         </div>
       </div>
 
@@ -59,11 +65,15 @@ const MisPlanillas = () => {
         </p>
       </div>
 
-      {/* One card per subject */}
-      {subjects.map(sub => {
-        const sheet = sheets.find(sh => sh.subjectId === sub.id);
-        const entry = sheet?.entries.find(e => e.studentId === STUDENT_ID);
-        const tp = sub.hoursPerWeek * 2;
+      {loading && <p className="text-center text-muted-foreground py-8">Cargando planillas...</p>}
+
+      {!loading && subjects.map(sub => {
+        const planilla = approvedPlanillas.find(p => p.subjectId === sub.id);
+        const myScores = planilla?.scores.find(s => s.studentId === STUDENT_ID);
+        const totalMax = planilla ? planilla.tasks.reduce((s, t) => s + t.maxPoints, 0) : sub.hoursPerWeek * 2;
+        const myTotal = planilla && myScores
+          ? planilla.tasks.reduce((s, t) => s + (myScores.scores[t.id] || 0), 0)
+          : 0;
 
         return (
           <Card key={sub.id}>
@@ -71,60 +81,63 @@ const MisPlanillas = () => {
               <div className="flex items-center justify-between mb-2">
                 <div>
                   <h4 className="font-semibold">{sub.name}</h4>
-                  <p className="text-xs text-muted-foreground">{sub.hoursPerWeek} hs/semana · TP máx: {tp} pts</p>
+                  <p className="text-xs text-muted-foreground">{sub.hoursPerWeek} hs/semana · TP máx: {totalMax} pts</p>
                 </div>
-                {sheet ? (
-                  <Badge variant={sheet.status === 'aprobado' ? 'default' : 'secondary'}>
-                    {sheet.status === 'aprobado' ? 'Publicado' : sheet.status === 'enviado' ? 'En revisión' : 'Pendiente'}
-                  </Badge>
+                {planilla ? (
+                  <Badge className="bg-green-500/20 text-green-700 border-green-300">Publicado</Badge>
                 ) : (
-                  <Badge variant="outline">Sin cargar</Badge>
+                  <Badge variant="outline">Sin publicar</Badge>
                 )}
               </div>
 
-              {entry ? (
-                <div className="flex items-center gap-4">
-                  <div className={`text-3xl font-bold ${
-                    entry.finalGrade / tp >= 0.8 ? 'text-success' :
-                    entry.finalGrade / tp >= 0.5 ? 'text-warning' :
-                    'text-destructive'
-                  }`}>
-                    {entry.finalGrade}
+              {planilla && myScores ? (
+                <div>
+                  {/* Show individual task scores */}
+                  <div className="flex flex-wrap gap-2 mb-3">
+                    {planilla.tasks.map(task => (
+                      <div key={task.id} className="text-center border rounded-lg p-2 min-w-[60px]">
+                        <div className="text-[10px] text-muted-foreground truncate max-w-[80px]">{task.name}</div>
+                        <div className="font-bold text-sm">{myScores.scores[task.id] || 0}</div>
+                        <div className="text-[9px] text-muted-foreground">/{task.maxPoints}</div>
+                      </div>
+                    ))}
                   </div>
-                  <div className="text-sm text-muted-foreground">
-                    / {tp} puntos
-                  </div>
-                  <div className="flex-1">
-                    <div className="h-2 bg-muted rounded-full overflow-hidden">
-                      <div
-                        className={`h-full rounded-full ${
-                          entry.finalGrade / tp >= 0.8 ? 'bg-success' :
-                          entry.finalGrade / tp >= 0.5 ? 'bg-warning' :
-                          'bg-destructive'
-                        }`}
-                        style={{ width: `${Math.min((entry.finalGrade / tp) * 100, 100)}%` }}
-                      />
+
+                  <div className="flex items-center gap-4">
+                    <div className={`text-3xl font-bold ${
+                      myTotal / totalMax >= 0.8 ? 'text-green-600' :
+                      myTotal / totalMax >= 0.5 ? 'text-amber-600' :
+                      'text-red-600'
+                    }`}>
+                      {myTotal}
                     </div>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      {((entry.finalGrade / tp) * 100).toFixed(0)}% del puntaje total
-                    </p>
+                    <div className="text-sm text-muted-foreground">/ {totalMax} puntos</div>
+                    <div className="flex-1">
+                      <div className="h-2 bg-muted rounded-full overflow-hidden">
+                        <div
+                          className={`h-full rounded-full ${
+                            myTotal / totalMax >= 0.8 ? 'bg-green-500' :
+                            myTotal / totalMax >= 0.5 ? 'bg-amber-500' :
+                            'bg-red-500'
+                          }`}
+                          style={{ width: `${Math.min((myTotal / totalMax) * 100, 100)}%` }}
+                        />
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {totalMax > 0 ? ((myTotal / totalMax) * 100).toFixed(0) : 0}% del puntaje total
+                      </p>
+                    </div>
                   </div>
                 </div>
               ) : (
                 <p className="text-sm text-muted-foreground italic">
-                  El profesor aún no cargó la planilla de este mes
+                  La planilla de este mes aún no fue aprobada por el Coordinador
                 </p>
               )}
             </CardContent>
           </Card>
         );
       })}
-
-      {subjects.length === 0 && (
-        <div className="text-center py-8 text-muted-foreground">
-          No se encontraron materias para tu curso.
-        </div>
-      )}
     </div>
   );
 };
