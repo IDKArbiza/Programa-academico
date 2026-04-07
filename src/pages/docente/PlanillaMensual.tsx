@@ -364,13 +364,13 @@ const PlanillaMensual = () => {
               </Card>
 
               {/* Actions */}
-              {existingPlanilla?.status !== 'aprobado' && (
+              {existingPlanilla?.status !== 'aprobado' && existingPlanilla?.status !== 'enviado' && (
                 <div className="flex gap-3">
-                  <Button variant="outline" onClick={handleSave} disabled={loading}>
+                  <Button variant="outline" onClick={handleSave} disabled={loading || submitting}>
                     <Save className="h-4 w-4 mr-2" />Guardar Borrador
                   </Button>
-                  <Button onClick={handleSubmit} disabled={loading}>
-                    <Send className="h-4 w-4 mr-2" />Enviar al Coordinador
+                  <Button onClick={handleSubmit} disabled={loading || submitting}>
+                    <Send className="h-4 w-4 mr-2" />{submitting ? 'Enviando...' : 'Enviar al Coordinador'}
                   </Button>
                 </div>
               )}
@@ -400,9 +400,18 @@ const PlanillaMensual = () => {
                   <div className="flex items-center gap-2">
                     {statusBadge(p.status)}
                     {(p.status === 'borrador' || p.status === 'rechazado') && (
-                      <Button variant="ghost" size="icon" onClick={() => handleDeletePlanilla(p.id)}>
-                        <Trash2 className="h-4 w-4 text-destructive" />
-                      </Button>
+                      <>
+                        <Button variant="outline" size="sm" onClick={() => {
+                          setSelectedSubjectId(p.subjectId);
+                          setSelectedMonth(String(p.month));
+                          setActiveTab('crear');
+                        }}>
+                          <Edit2 className="h-3 w-3 mr-1" /> Editar
+                        </Button>
+                        <Button variant="ghost" size="icon" onClick={() => handleDeletePlanilla(p.id)}>
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                      </>
                     )}
                   </div>
                 </CardContent>
