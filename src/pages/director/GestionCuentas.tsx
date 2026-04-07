@@ -163,6 +163,7 @@ const GestionCuentas = () => {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Crear Nueva Cuenta</DialogTitle>
+            <p className="text-sm text-muted-foreground">Completá los datos para crear una cuenta institucional</p>
           </DialogHeader>
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-3">

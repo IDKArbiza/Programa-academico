@@ -23,7 +23,6 @@ export const MONTHS_ETAPA_1 = [
 ];
 
 export const MONTHS_ETAPA_2 = [
-  { month: 7, name: 'Julio' },
   { month: 8, name: 'Agosto' },
   { month: 9, name: 'Septiembre' },
   { month: 10, name: 'Octubre' },

@@ -150,6 +150,7 @@ const RevisarPlanillas = () => {
         <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{viewPlanilla?.subjectName} — {ALL_MONTHS.find(m => m.month === viewPlanilla?.month)?.name} {viewPlanilla?.year}</DialogTitle>
+            <p className="text-sm text-muted-foreground">Detalle de puntajes por alumno</p>
           </DialogHeader>
           {viewPlanilla && (
             <div className="overflow-x-auto">
@@ -193,7 +194,10 @@ const RevisarPlanillas = () => {
       {/* Reject Dialog */}
       <Dialog open={!!rejectPlanilla} onOpenChange={(o) => !o && setRejectPlanilla(null)}>
         <DialogContent>
-          <DialogHeader><DialogTitle>Rechazar Planilla</DialogTitle></DialogHeader>
+          <DialogHeader>
+            <DialogTitle>Rechazar Planilla</DialogTitle>
+            <p className="text-sm text-muted-foreground">Indicá el motivo del rechazo</p>
+          </DialogHeader>
           <div className="space-y-3">
             <p className="text-sm">Planilla: <strong>{rejectPlanilla?.subjectName}</strong> — {rejectPlanilla?.teacherName}</p>
             <div className="space-y-1">
