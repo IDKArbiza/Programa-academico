@@ -1,6 +1,6 @@
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Layers, FolderOpen, UserPlus, Shield } from 'lucide-react';
+import { Layers, FolderOpen, UserPlus, Shield, ClipboardCheck } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 const DirectorDashboard = () => {
@@ -28,6 +28,23 @@ const DirectorDashboard = () => {
             </p>
             <Link to="/director/planillas">
               <Button className="w-full">Ir a Planillas</Button>
+            </Link>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="p-2 rounded-lg bg-primary/10">
+                <ClipboardCheck className="h-6 w-6 text-primary" />
+              </div>
+              <h3 className="font-semibold">Revisar Planillas</h3>
+            </div>
+            <p className="text-sm text-muted-foreground mb-4">
+              Aprobar o rechazar planillas enviadas por los profesores.
+            </p>
+            <Link to="/director/revisar">
+              <Button className="w-full">Revisar Planillas</Button>
             </Link>
           </CardContent>
         </Card>

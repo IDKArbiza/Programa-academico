@@ -219,7 +219,7 @@ const PlanillaMensual = () => {
         <Layers className="h-6 w-6 text-primary" />
         <div>
           <h2 className="text-2xl font-bold">Planilla de Informe Mensual</h2>
-          <p className="text-sm text-muted-foreground">Colegio Politécnico CPCC — Persistencia en Firebase</p>
+          <p className="text-sm text-muted-foreground">Colegio Politécnico CPCC — Nivel Medio</p>
         </div>
       </div>
 
@@ -406,7 +406,10 @@ const PlanillaMensual = () => {
       {/* Edit task dialog */}
       <Dialog open={!!editingTask} onOpenChange={(open) => !open && setEditingTask(null)}>
         <DialogContent className="sm:max-w-[400px]">
-          <DialogHeader><DialogTitle>Editar Tarea</DialogTitle></DialogHeader>
+          <DialogHeader>
+            <DialogTitle>Editar Tarea</DialogTitle>
+            <p className="text-sm text-muted-foreground">Modificá el nombre de la tarea</p>
+          </DialogHeader>
           <div className="space-y-3">
             <div className="space-y-1">
               <Label>Nombre de la tarea</Label>

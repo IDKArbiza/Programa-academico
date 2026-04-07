@@ -217,6 +217,7 @@ const GestionCursos = () => {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Crear Nuevo Curso</DialogTitle>
+            <p className="text-sm text-muted-foreground">Definí el nombre y el año del curso</p>
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
@@ -253,6 +254,7 @@ const GestionCursos = () => {
             <DialogTitle>
               Añadir {assignType === 'student' ? 'Alumno' : 'Profesor'} al Curso
             </DialogTitle>
+            <p className="text-sm text-muted-foreground">Seleccioná la cuenta a asignar</p>
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
