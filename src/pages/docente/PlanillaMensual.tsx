@@ -14,6 +14,7 @@ import { useAppStore } from '@/lib/store';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 const PlanillaMensual = () => {
+  const [submitting, setSubmitting] = useState(false);
   const { toast } = useToast();
   const { currentRole, user } = useAppStore();
   const { planillas, loading, fetchPlanillas, savePlanilla, updatePlanilla, deletePlanilla } = usePlanillasStore();
@@ -102,7 +103,8 @@ const PlanillaMensual = () => {
   );
 
   const handleSave = async () => {
-    if (!subject) return;
+    if (!subject || submitting) return;
+    setSubmitting(true);
     const planillaScores = students.map(s => ({
       studentId: s.id,
       scores: scores[s.id] || {},
@@ -114,6 +116,7 @@ const PlanillaMensual = () => {
           tasks,
           scores: planillaScores,
           status: 'borrador',
+          rejectionReason: undefined,
         });
       } else {
         await savePlanilla({
@@ -130,14 +133,17 @@ const PlanillaMensual = () => {
           status: 'borrador',
         });
       }
-      toast({ title: 'Planilla guardada', description: `Borrador de ${subject.name} - ${monthName} guardado en Firebase` });
+      toast({ title: 'Planilla guardada', description: `Borrador de ${subject.name} - ${monthName} guardado` });
     } catch {
       toast({ title: 'Error', description: 'No se pudo guardar la planilla', variant: 'destructive' });
+    } finally {
+      setSubmitting(false);
     }
   };
 
   const handleSubmit = async () => {
-    if (!subject) return;
+    if (!subject || submitting) return;
+    setSubmitting(true);
     const planillaScores = students.map(s => ({
       studentId: s.id,
       scores: scores[s.id] || {},
@@ -150,6 +156,7 @@ const PlanillaMensual = () => {
           scores: planillaScores,
           status: 'enviado',
           submittedDate: new Date().toISOString(),
+          rejectionReason: undefined,
         });
       } else {
         await savePlanilla({
@@ -170,6 +177,8 @@ const PlanillaMensual = () => {
       toast({ title: 'Planilla enviada', description: `Planilla enviada al Coordinador para aprobación` });
     } catch {
       toast({ title: 'Error', description: 'No se pudo enviar la planilla', variant: 'destructive' });
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -355,13 +364,13 @@ const PlanillaMensual = () => {
               </Card>
 
               {/* Actions */}
-              {existingPlanilla?.status !== 'aprobado' && (
+              {existingPlanilla?.status !== 'aprobado' && existingPlanilla?.status !== 'enviado' && (
                 <div className="flex gap-3">
-                  <Button variant="outline" onClick={handleSave} disabled={loading}>
+                  <Button variant="outline" onClick={handleSave} disabled={loading || submitting}>
                     <Save className="h-4 w-4 mr-2" />Guardar Borrador
                   </Button>
-                  <Button onClick={handleSubmit} disabled={loading}>
-                    <Send className="h-4 w-4 mr-2" />Enviar al Coordinador
+                  <Button onClick={handleSubmit} disabled={loading || submitting}>
+                    <Send className="h-4 w-4 mr-2" />{submitting ? 'Enviando...' : 'Enviar al Coordinador'}
                   </Button>
                 </div>
               )}
@@ -391,9 +400,18 @@ const PlanillaMensual = () => {
                   <div className="flex items-center gap-2">
                     {statusBadge(p.status)}
                     {(p.status === 'borrador' || p.status === 'rechazado') && (
-                      <Button variant="ghost" size="icon" onClick={() => handleDeletePlanilla(p.id)}>
-                        <Trash2 className="h-4 w-4 text-destructive" />
-                      </Button>
+                      <>
+                        <Button variant="outline" size="sm" onClick={() => {
+                          setSelectedSubjectId(p.subjectId);
+                          setSelectedMonth(String(p.month));
+                          setActiveTab('crear');
+                        }}>
+                          <Edit2 className="h-3 w-3 mr-1" /> Editar
+                        </Button>
+                        <Button variant="ghost" size="icon" onClick={() => handleDeletePlanilla(p.id)}>
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                      </>
                     )}
                   </div>
                 </CardContent>
