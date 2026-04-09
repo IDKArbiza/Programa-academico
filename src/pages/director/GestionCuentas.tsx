@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,69 +7,71 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { UserPlus, Users, BookOpen, GraduationCap, Trash2, Edit2 } from 'lucide-react';
+import { UserPlus, Users, BookOpen, GraduationCap, Trash2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { UserRole } from '@/lib/types';
-
-interface Account {
-  id: string;
-  firstName: string;
-  lastName: string;
-  ci: string;
-  email: string;
-  role: 'coordinador' | 'docente' | 'alumno';
-  grade?: string;
-  status: 'activo' | 'inactivo';
-}
+import { useAccountsStore, Account } from '@/lib/accounts-store';
 
 const GestionCuentas = () => {
   const { toast } = useToast();
+  const { accounts, loading, fetchAccounts, createAccount, updateAccount, deleteAccount: removeAccount } = useAccountsStore();
 
-  const [accounts, setAccounts] = useState<Account[]>([
-    { id: 'a1', firstName: 'Carlos', lastName: 'Mendoza González', ci: '5845123', email: '5845123@cpcc.com', role: 'alumno', grade: '1° Año', status: 'activo' },
-    { id: 'a2', firstName: 'María', lastName: 'Flores Benítez', ci: '5845124', email: '5845124@cpcc.com', role: 'alumno', grade: '1° Año', status: 'activo' },
-    { id: 'a3', firstName: 'Juan', lastName: 'García Villalba', ci: '5845125', email: '5845125@cpcc.com', role: 'alumno', grade: '2° Año', status: 'activo' },
-    { id: 'a4', firstName: 'Roberto', lastName: 'Vargas Medina', ci: '2567891', email: '2567891@cpcc.com', role: 'docente', status: 'activo' },
-    { id: 'a5', firstName: 'Carmen', lastName: 'López Insfrán', ci: '2567892', email: '2567892@cpcc.com', role: 'docente', status: 'activo' },
-    { id: 'a6', firstName: 'Miguel', lastName: 'Torres Cabrera', ci: '2567893', email: '2567893@cpcc.com', role: 'coordinador', status: 'activo' },
-  ]);
+  useEffect(() => { fetchAccounts(); }, []);
 
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [newAccount, setNewAccount] = useState({
     firstName: '', lastName: '', ci: '', role: '' as string, grade: '',
   });
 
-  const createAccount = () => {
+  const handleCreateAccount = async () => {
     if (!newAccount.firstName || !newAccount.lastName || !newAccount.ci || !newAccount.role) return;
     const email = `${newAccount.ci}@cpcc.com`;
-    const account: Account = {
-      id: `a-${Date.now()}`,
-      firstName: newAccount.firstName,
-      lastName: newAccount.lastName,
-      ci: newAccount.ci,
-      email,
-      role: newAccount.role as Account['role'],
-      grade: newAccount.role === 'alumno' ? newAccount.grade : undefined,
-      status: 'activo',
-    };
-    setAccounts(prev => [...prev, account]);
-    setNewAccount({ firstName: '', lastName: '', ci: '', role: '', grade: '' });
-    setShowCreateDialog(false);
-    toast({
-      title: 'Cuenta creada',
-      description: `${account.firstName} ${account.lastName} — Email: ${email} — Contraseña: ${newAccount.ci}cpcc`,
-    });
+    
+    // Check if CI already exists
+    const existing = accounts.find(a => a.ci === newAccount.ci);
+    if (existing) {
+      toast({ title: 'Error', description: 'Ya existe una cuenta con esa cédula', variant: 'destructive' });
+      return;
+    }
+
+    try {
+      await createAccount({
+        firstName: newAccount.firstName,
+        lastName: newAccount.lastName,
+        ci: newAccount.ci,
+        email,
+        role: newAccount.role as Account['role'],
+        grade: newAccount.role === 'alumno' ? newAccount.grade : undefined,
+        status: 'activo',
+      });
+      setNewAccount({ firstName: '', lastName: '', ci: '', role: '', grade: '' });
+      setShowCreateDialog(false);
+      toast({
+        title: 'Cuenta creada',
+        description: `${newAccount.firstName} ${newAccount.lastName} — Email: ${email} — Contraseña: ${newAccount.ci}cpcc`,
+      });
+    } catch {
+      toast({ title: 'Error', description: 'No se pudo crear la cuenta', variant: 'destructive' });
+    }
   };
 
-  const deleteAccount = (id: string) => {
-    setAccounts(prev => prev.filter(a => a.id !== id));
-    toast({ title: 'Cuenta eliminada' });
+  const handleDeleteAccount = async (id: string) => {
+    try {
+      await removeAccount(id);
+      toast({ title: 'Cuenta eliminada' });
+    } catch {
+      toast({ title: 'Error', description: 'No se pudo eliminar la cuenta', variant: 'destructive' });
+    }
   };
 
-  const toggleStatus = (id: string) => {
-    setAccounts(prev => prev.map(a =>
-      a.id === id ? { ...a, status: a.status === 'activo' ? 'inactivo' : 'activo' } : a
-    ));
+  const handleToggleStatus = async (account: Account) => {
+    try {
+      await updateAccount(account.id, {
+        status: account.status === 'activo' ? 'inactivo' : 'activo',
+      });
+      toast({ title: `Cuenta ${account.status === 'activo' ? 'desactivada' : 'activada'}` });
+    } catch {
+      toast({ title: 'Error', variant: 'destructive' });
+    }
   };
 
   const roleLabel = (role: string) => {
@@ -107,6 +109,8 @@ const GestionCuentas = () => {
         </Button>
       </div>
 
+      {loading && <p className="text-center text-muted-foreground py-8">Cargando cuentas...</p>}
+
       <Tabs defaultValue="alumno">
         <TabsList>
           <TabsTrigger value="alumno">
@@ -141,10 +145,10 @@ const GestionCuentas = () => {
                     <Badge variant={account.status === 'activo' ? 'default' : 'secondary'}>
                       {account.status}
                     </Badge>
-                    <Button variant="ghost" size="sm" onClick={() => toggleStatus(account.id)}>
+                    <Button variant="ghost" size="sm" onClick={() => handleToggleStatus(account)}>
                       {account.status === 'activo' ? 'Desactivar' : 'Activar'}
                     </Button>
-                    <Button variant="ghost" size="icon" onClick={() => deleteAccount(account.id)}>
+                    <Button variant="ghost" size="icon" onClick={() => handleDeleteAccount(account.id)}>
                       <Trash2 className="h-4 w-4 text-destructive" />
                     </Button>
                   </div>
@@ -208,7 +212,7 @@ const GestionCuentas = () => {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowCreateDialog(false)}>Cancelar</Button>
-            <Button onClick={createAccount} disabled={!newAccount.firstName || !newAccount.lastName || !newAccount.ci || !newAccount.role}>
+            <Button onClick={handleCreateAccount} disabled={!newAccount.firstName || !newAccount.lastName || !newAccount.ci || !newAccount.role}>
               Crear Cuenta
             </Button>
           </DialogFooter>

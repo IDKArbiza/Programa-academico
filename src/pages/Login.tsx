@@ -1,33 +1,29 @@
 import { useState } from 'react';
 import { useAppStore } from '@/lib/store';
+import { useAccountsStore } from '@/lib/accounts-store';
 import { LogIn, Loader2, IdCard, Shield, Users, BookOpen, GraduationCap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { userService } from '@/lib/firebase-services';
 import { UserRole } from '@/lib/types';
 
-const demoAccounts: { role: UserRole; label: string; icon: React.ReactNode; email: string }[] = [
-  { role: 'director', label: 'Administrador', icon: <Shield className="h-5 w-5" />, email: 'admin@cpcc.com' },
-  { role: 'coordinador', label: 'Coordinador', icon: <Users className="h-5 w-5" />, email: 'coord@cpcc.com' },
-  { role: 'docente', label: 'Profesor', icon: <BookOpen className="h-5 w-5" />, email: 'prof@cpcc.com' },
-  { role: 'alumno', label: 'Alumno', icon: <GraduationCap className="h-5 w-5" />, email: 'alumno@cpcc.com' },
-];
-
 const Login = () => {
-  const { login, setRole, isLoading } = useAppStore();
+  const { login, setRole, setUser, isLoading } = useAppStore();
+  const { fetchAccounts } = useAccountsStore();
   const [cedula, setCedula] = useState('');
   const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
 
   const handleLogin = async () => {
+    setError('');
     if (!cedula || !password) {
-      alert('Por favor, ingrese su correo electrónico y contraseña');
+      setError('Por favor, ingrese su correo electrónico y contraseña');
       return;
     }
 
     if (!cedula.includes('@') || !cedula.endsWith('@cpcc.com')) {
-      alert('Por favor, ingrese un correo válido con formato: cedula@cpcc.com');
+      setError('Por favor, ingrese un correo válido con formato: cedula@cpcc.com');
       return;
     }
 
@@ -35,26 +31,17 @@ const Login = () => {
     const expectedPassword = `${cedulaNumber}cpcc`;
 
     if (password !== expectedPassword) {
-      alert('Contraseña incorrecta. Por favor, verifique sus datos.');
+      setError('Contraseña incorrecta. Por favor, verifique sus datos.');
       return;
     }
 
-    try {
-      const users = await userService.getByEmail(cedula);
-      if (users.length === 0) {
-        alert('Usuario no encontrado. Por favor, verifique sus credenciales.');
-        return;
-      }
-      const user = users[0];
-      setRole(user.role, user.id);
-    } catch (error) {
-      console.error('Error en login:', error);
-      alert('Error al iniciar sesión. Por favor, intente nuevamente.');
-    }
-  };
+    // Ensure accounts are loaded from Firestore
+    await fetchAccounts();
 
-  const handleDemoLogin = (role: UserRole) => {
-    setRole(role, `demo-${role}`);
+    const success = await login(cedula, password);
+    if (!success) {
+      setError('Usuario no encontrado o cuenta inactiva. Verifique sus credenciales.');
+    }
   };
 
   return (
@@ -90,6 +77,9 @@ const Login = () => {
               <Label htmlFor="password">Contraseña</Label>
               <Input id="password" type="password" placeholder="cedulacpcc" value={password} onChange={(e) => setPassword(e.target.value)} className="mt-1" />
             </div>
+            {error && (
+              <p className="text-sm text-destructive">{error}</p>
+            )}
           </CardContent>
         </Card>
 
@@ -100,24 +90,6 @@ const Login = () => {
             <><LogIn className="h-5 w-5" /> Iniciar Sesión</>
           )}
         </Button>
-
-        {/* Demo access */}
-        <div className="space-y-2">
-          <p className="text-center text-xs text-muted-foreground">Acceso rápido de demostración</p>
-          <div className="grid grid-cols-2 gap-2">
-            {demoAccounts.map(acc => (
-              <Button
-                key={acc.role}
-                variant="outline"
-                className="gap-2 h-10"
-                onClick={() => handleDemoLogin(acc.role)}
-              >
-                {acc.icon}
-                {acc.label}
-              </Button>
-            ))}
-          </div>
-        </div>
 
         <p className="text-center text-xs text-muted-foreground mt-6">
           CPCC · Paraguay 🇵🇾 · Planillas Mensuales
