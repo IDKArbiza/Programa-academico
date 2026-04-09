@@ -2,29 +2,38 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { mockSubjects, mockStudents, ALL_MONTHS } from '@/lib/mock-data';
+import { ALL_MONTHS } from '@/lib/mock-data';
 import { Label } from '@/components/ui/label';
 import { Layers, Eye, Lock } from 'lucide-react';
 import { usePlanillasStore } from '@/lib/planillas-store';
 import { useAppStore } from '@/lib/store';
+import { useCoursesStore } from '@/lib/courses-store';
 
 const MisPlanillas = () => {
   const { user } = useAppStore();
   const { planillas, fetchPlanillas, loading } = usePlanillasStore();
+  const { courses, fetchCourses } = useCoursesStore();
 
-  useEffect(() => { fetchPlanillas(); }, []);
+  useEffect(() => {
+    fetchPlanillas();
+    fetchCourses();
+  }, []);
 
-  // Find student by logged-in user
-  const STUDENT_ID = user?.id || 's1';
-  const student = mockStudents.find(s => s.id === STUDENT_ID) || mockStudents[0];
-  const subjects = mockSubjects.filter(s => s.grade === student.grade);
+  const STUDENT_ID = user?.id || '';
+  const studentName = user?.name || '';
+  const studentGrade = user?.grade || '';
+
+  // Find the course this student belongs to
+  const studentCourse = courses.find(c => c.students.includes(STUDENT_ID));
+  const grade = studentCourse?.grade || studentGrade;
+
   const [selectedMonth, setSelectedMonth] = useState('3');
   const month = parseInt(selectedMonth);
   const monthName = ALL_MONTHS.find(m => m.month === month)?.name || '';
 
   // Only show APPROVED planillas for this student's grade
   const approvedPlanillas = planillas.filter(
-    p => p.status === 'aprobado' && p.grade === student.grade && p.month === month && p.year === 2026
+    p => p.status === 'aprobado' && p.grade === grade && p.month === month && p.year === 2026
   );
 
   return (
@@ -61,79 +70,76 @@ const MisPlanillas = () => {
       <div className="text-center bg-primary/10 border border-primary/20 rounded-lg p-3 mb-2">
         <h3 className="font-bold text-lg">Puntajes de {monthName} 2026</h3>
         <p className="text-sm text-muted-foreground">
-          {student.firstName} {student.lastName} — {student.grade} Bachillerato Técnico en Informática
+          {studentName} — {grade} Bachillerato Técnico en Informática
         </p>
       </div>
 
       {loading && <p className="text-center text-muted-foreground py-8">Cargando planillas...</p>}
 
-      {!loading && subjects.map(sub => {
-        const planilla = approvedPlanillas.find(p => p.subjectId === sub.id);
-        const myScores = planilla?.scores.find(s => s.studentId === STUDENT_ID);
-        const totalMax = planilla ? planilla.tasks.reduce((s, t) => s + t.maxPoints, 0) : sub.hoursPerWeek * 2;
-        const myTotal = planilla && myScores
+      {!loading && approvedPlanillas.length === 0 && (
+        <p className="text-center text-muted-foreground py-8">
+          No hay planillas aprobadas para este mes.
+        </p>
+      )}
+
+      {!loading && approvedPlanillas.map(planilla => {
+        const myScores = planilla.scores.find(s => s.studentId === STUDENT_ID);
+        const totalMax = planilla.tasks.reduce((s, t) => s + t.maxPoints, 0);
+        const myTotal = myScores
           ? planilla.tasks.reduce((s, t) => s + (myScores.scores[t.id] || 0), 0)
           : 0;
 
+        if (!myScores) return null;
+
         return (
-          <Card key={sub.id}>
+          <Card key={planilla.id}>
             <CardContent className="p-4">
               <div className="flex items-center justify-between mb-2">
                 <div>
-                  <h4 className="font-semibold">{sub.name}</h4>
-                  <p className="text-xs text-muted-foreground">{sub.hoursPerWeek} hs/semana · TP máx: {totalMax} pts</p>
+                  <h4 className="font-semibold">{planilla.subjectName}</h4>
+                  <p className="text-xs text-muted-foreground">
+                    Prof. {planilla.teacherName} · TP máx: {totalMax} pts
+                  </p>
                 </div>
-                {planilla ? (
-                  <Badge className="bg-green-500/20 text-green-700 border-green-300">Publicado</Badge>
-                ) : (
-                  <Badge variant="outline">Sin publicar</Badge>
-                )}
+                <Badge className="bg-green-500/20 text-green-700 border-green-300">Publicado</Badge>
               </div>
 
-              {planilla && myScores ? (
-                <div>
-                  {/* Show individual task scores */}
-                  <div className="flex flex-wrap gap-2 mb-3">
-                    {planilla.tasks.map(task => (
-                      <div key={task.id} className="text-center border rounded-lg p-2 min-w-[60px]">
-                        <div className="text-[10px] text-muted-foreground truncate max-w-[80px]">{task.name}</div>
-                        <div className="font-bold text-sm">{myScores.scores[task.id] || 0}</div>
-                        <div className="text-[9px] text-muted-foreground">/{task.maxPoints}</div>
-                      </div>
-                    ))}
+              {/* Show individual task scores */}
+              <div className="flex flex-wrap gap-2 mb-3">
+                {planilla.tasks.map(task => (
+                  <div key={task.id} className="text-center border rounded-lg p-2 min-w-[60px]">
+                    <div className="text-[10px] text-muted-foreground truncate max-w-[80px]">{task.name}</div>
+                    <div className="font-bold text-sm">{myScores.scores[task.id] || 0}</div>
+                    <div className="text-[9px] text-muted-foreground">/{task.maxPoints}</div>
                   </div>
+                ))}
+              </div>
 
-                  <div className="flex items-center gap-4">
-                    <div className={`text-3xl font-bold ${
-                      myTotal / totalMax >= 0.8 ? 'text-green-600' :
-                      myTotal / totalMax >= 0.5 ? 'text-amber-600' :
-                      'text-red-600'
-                    }`}>
-                      {myTotal}
-                    </div>
-                    <div className="text-sm text-muted-foreground">/ {totalMax} puntos</div>
-                    <div className="flex-1">
-                      <div className="h-2 bg-muted rounded-full overflow-hidden">
-                        <div
-                          className={`h-full rounded-full ${
-                            myTotal / totalMax >= 0.8 ? 'bg-green-500' :
-                            myTotal / totalMax >= 0.5 ? 'bg-amber-500' :
-                            'bg-red-500'
-                          }`}
-                          style={{ width: `${Math.min((myTotal / totalMax) * 100, 100)}%` }}
-                        />
-                      </div>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        {totalMax > 0 ? ((myTotal / totalMax) * 100).toFixed(0) : 0}% del puntaje total
-                      </p>
-                    </div>
-                  </div>
+              <div className="flex items-center gap-4">
+                <div className={`text-3xl font-bold ${
+                  myTotal / totalMax >= 0.8 ? 'text-green-600' :
+                  myTotal / totalMax >= 0.5 ? 'text-amber-600' :
+                  'text-red-600'
+                }`}>
+                  {myTotal}
                 </div>
-              ) : (
-                <p className="text-sm text-muted-foreground italic">
-                  La planilla de este mes aún no fue aprobada por el Coordinador
-                </p>
-              )}
+                <div className="text-sm text-muted-foreground">/ {totalMax} puntos</div>
+                <div className="flex-1">
+                  <div className="h-2 bg-muted rounded-full overflow-hidden">
+                    <div
+                      className={`h-full rounded-full ${
+                        myTotal / totalMax >= 0.8 ? 'bg-green-500' :
+                        myTotal / totalMax >= 0.5 ? 'bg-amber-500' :
+                        'bg-red-500'
+                      }`}
+                      style={{ width: `${Math.min((myTotal / totalMax) * 100, 100)}%` }}
+                    />
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {totalMax > 0 ? ((myTotal / totalMax) * 100).toFixed(0) : 0}% del puntaje total
+                  </p>
+                </div>
+              </div>
             </CardContent>
           </Card>
         );

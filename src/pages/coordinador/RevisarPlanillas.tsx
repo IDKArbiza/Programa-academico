@@ -9,19 +9,24 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { CheckCircle, XCircle, Eye, Clock, Layers } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { usePlanillasStore, Planilla } from '@/lib/planillas-store';
-import { mockStudents, ALL_MONTHS } from '@/lib/mock-data';
+import { ALL_MONTHS } from '@/lib/mock-data';
 import { useAppStore } from '@/lib/store';
+import { useAccountsStore } from '@/lib/accounts-store';
 
 const RevisarPlanillas = () => {
   const { toast } = useToast();
   const { user } = useAppStore();
   const { planillas, loading, fetchPlanillas, updatePlanilla } = usePlanillasStore();
+  const { accounts, fetchAccounts } = useAccountsStore();
 
   const [viewPlanilla, setViewPlanilla] = useState<Planilla | null>(null);
   const [rejectPlanilla, setRejectPlanilla] = useState<Planilla | null>(null);
   const [rejectionReason, setRejectionReason] = useState('');
 
-  useEffect(() => { fetchPlanillas(); }, []);
+  useEffect(() => {
+    fetchPlanillas();
+    fetchAccounts();
+  }, []);
 
   const pendientes = planillas.filter(p => p.status === 'enviado');
   const aprobadas = planillas.filter(p => p.status === 'aprobado');
@@ -56,8 +61,8 @@ const RevisarPlanillas = () => {
   };
 
   const getStudentName = (id: string) => {
-    const s = mockStudents.find(st => st.id === id);
-    return s ? `${s.lastName}, ${s.firstName}` : id;
+    const a = accounts.find(acc => acc.id === id);
+    return a ? `${a.lastName}, ${a.firstName}` : id;
   };
 
   const renderPlanillaCard = (p: Planilla, showActions: boolean) => {
