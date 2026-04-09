@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,124 +8,106 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { FolderOpen, Plus, Users, BookOpen, Trash2, UserPlus } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { mockStudents, mockTeachers, mockSubjects } from '@/lib/mock-data';
-
-interface Course {
-  id: string;
-  name: string;
-  grade: string;
-  year: number;
-  students: string[];
-  teachers: string[];
-  subjects: string[];
-}
+import { useAccountsStore } from '@/lib/accounts-store';
+import { useCoursesStore } from '@/lib/courses-store';
 
 const GestionCursos = () => {
   const { toast } = useToast();
-  const [courses, setCourses] = useState<Course[]>([
-    {
-      id: 'c1',
-      name: '1° Año - Bachillerato Técnico en Informática',
-      grade: '1° Año',
-      year: 2026,
-      students: ['s1', 's2'],
-      teachers: ['t1', 't2'],
-      subjects: ['sub14', 'sub15', 'sub16'],
-    },
-    {
-      id: 'c2',
-      name: '2° Año - Bachillerato Técnico en Informática',
-      grade: '2° Año',
-      year: 2026,
-      students: ['s3', 's4'],
-      teachers: ['t1', 't3', 't4'],
-      subjects: ['sub17', 'sub18', 'sub19'],
-    },
-    {
-      id: 'c3',
-      name: '3° Año - Bachillerato Técnico en Informática',
-      grade: '3° Año',
-      year: 2026,
-      students: ['s5', 's6'],
-      teachers: ['t1', 't2', 't3', 't4'],
-      subjects: ['sub1', 'sub2', 'sub3', 'sub4', 'sub5', 'sub6', 'sub7', 'sub8', 'sub9', 'sub10', 'sub11', 'sub12', 'sub13'],
-    },
-  ]);
+  const { accounts, fetchAccounts } = useAccountsStore();
+  const { courses, loading, fetchCourses, createCourse, updateCourse, deleteCourse: removeCourse } = useCoursesStore();
+
+  useEffect(() => {
+    fetchAccounts();
+    fetchCourses();
+  }, []);
 
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [newCourseName, setNewCourseName] = useState('');
   const [newCourseGrade, setNewCourseGrade] = useState('');
-  const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
+  const [selectedCourse, setSelectedCourse] = useState<typeof courses[0] | null>(null);
   const [showAssignDialog, setShowAssignDialog] = useState(false);
   const [assignType, setAssignType] = useState<'student' | 'teacher'>('student');
   const [selectedAccountId, setSelectedAccountId] = useState('');
 
-  const createCourse = () => {
+  const students = accounts.filter(a => a.role === 'alumno' && a.status === 'activo');
+  const teachers = accounts.filter(a => (a.role === 'docente' || a.role === 'coordinador' || a.role === 'director') && a.status === 'activo');
+
+  const handleCreateCourse = async () => {
     if (!newCourseName.trim() || !newCourseGrade) return;
-    const newCourse: Course = {
-      id: `c-${Date.now()}`,
-      name: newCourseName.trim(),
-      grade: newCourseGrade,
-      year: 2026,
-      students: [],
-      teachers: [],
-      subjects: [],
-    };
-    setCourses(prev => [...prev, newCourse]);
-    setNewCourseName('');
-    setNewCourseGrade('');
-    setShowCreateDialog(false);
-    toast({ title: 'Curso creado', description: `${newCourse.name} fue creado exitosamente.` });
+    try {
+      await createCourse({
+        name: newCourseName.trim(),
+        grade: newCourseGrade,
+        year: 2026,
+        students: [],
+        teachers: [],
+        subjects: [],
+      });
+      setNewCourseName('');
+      setNewCourseGrade('');
+      setShowCreateDialog(false);
+      toast({ title: 'Curso creado', description: `${newCourseName.trim()} fue creado exitosamente.` });
+    } catch {
+      toast({ title: 'Error', description: 'No se pudo crear el curso', variant: 'destructive' });
+    }
   };
 
-  const deleteCourse = (courseId: string) => {
-    setCourses(prev => prev.filter(c => c.id !== courseId));
-    toast({ title: 'Curso eliminado' });
+  const handleDeleteCourse = async (courseId: string) => {
+    try {
+      await removeCourse(courseId);
+      toast({ title: 'Curso eliminado' });
+    } catch {
+      toast({ title: 'Error', variant: 'destructive' });
+    }
   };
 
-  const openAssignDialog = (course: Course, type: 'student' | 'teacher') => {
+  const openAssignDialog = (course: typeof courses[0], type: 'student' | 'teacher') => {
     setSelectedCourse(course);
     setAssignType(type);
     setSelectedAccountId('');
     setShowAssignDialog(true);
   };
 
-  const assignAccount = () => {
+  const assignAccount = async () => {
     if (!selectedCourse || !selectedAccountId) return;
-    setCourses(prev => prev.map(c => {
-      if (c.id !== selectedCourse.id) return c;
-      const key = assignType === 'student' ? 'students' : 'teachers';
-      if (c[key].includes(selectedAccountId)) return c;
-      return { ...c, [key]: [...c[key], selectedAccountId] };
-    }));
-    setShowAssignDialog(false);
-    toast({ title: `${assignType === 'student' ? 'Alumno' : 'Profesor'} asignado al curso` });
+    const key = assignType === 'student' ? 'students' : 'teachers';
+    if (selectedCourse[key].includes(selectedAccountId)) return;
+    
+    try {
+      await updateCourse(selectedCourse.id, {
+        [key]: [...selectedCourse[key], selectedAccountId],
+      });
+      setShowAssignDialog(false);
+      toast({ title: `${assignType === 'student' ? 'Alumno' : 'Profesor'} asignado al curso` });
+    } catch {
+      toast({ title: 'Error', variant: 'destructive' });
+    }
   };
 
-  const removeFromCourse = (courseId: string, accountId: string, type: 'student' | 'teacher') => {
-    setCourses(prev => prev.map(c => {
-      if (c.id !== courseId) return c;
-      const key = type === 'student' ? 'students' : 'teachers';
-      return { ...c, [key]: c[key].filter(id => id !== accountId) };
-    }));
+  const removeFromCourse = async (courseId: string, accountId: string, type: 'student' | 'teacher') => {
+    const course = courses.find(c => c.id === courseId);
+    if (!course) return;
+    const key = type === 'student' ? 'students' : 'teachers';
+    try {
+      await updateCourse(courseId, {
+        [key]: course[key].filter(id => id !== accountId),
+      });
+    } catch {
+      toast({ title: 'Error', variant: 'destructive' });
+    }
   };
 
-  const getStudentName = (id: string) => {
-    const s = mockStudents.find(st => st.id === id);
-    return s ? `${s.lastName}, ${s.firstName}` : id;
-  };
-
-  const getTeacherName = (id: string) => {
-    const t = mockTeachers.find(te => te.id === id);
-    return t ? `${t.lastName}, ${t.firstName}` : id;
+  const getAccountName = (id: string) => {
+    const a = accounts.find(acc => acc.id === id);
+    return a ? `${a.lastName}, ${a.firstName}` : id;
   };
 
   const availableStudents = selectedCourse
-    ? mockStudents.filter(s => !selectedCourse.students.includes(s.id))
+    ? students.filter(s => !selectedCourse.students.includes(s.id))
     : [];
 
   const availableTeachers = selectedCourse
-    ? mockTeachers.filter(t => !selectedCourse.teachers.includes(t.id))
+    ? teachers.filter(t => !selectedCourse.teachers.includes(t.id))
     : [];
 
   return (
@@ -143,6 +125,8 @@ const GestionCursos = () => {
         </Button>
       </div>
 
+      {loading && <p className="text-center text-muted-foreground py-8">Cargando cursos...</p>}
+
       <div className="grid gap-4">
         {courses.map(course => (
           <Card key={course.id}>
@@ -151,7 +135,7 @@ const GestionCursos = () => {
                 <CardTitle className="text-lg">{course.name}</CardTitle>
                 <div className="flex gap-2">
                   <Badge variant="secondary">{course.grade}</Badge>
-                  <Button variant="ghost" size="icon" onClick={() => deleteCourse(course.id)}>
+                  <Button variant="ghost" size="icon" onClick={() => handleDeleteCourse(course.id)}>
                     <Trash2 className="h-4 w-4 text-destructive" />
                   </Button>
                 </div>
@@ -171,7 +155,7 @@ const GestionCursos = () => {
                 <div className="flex flex-wrap gap-2">
                   {course.students.map(sid => (
                     <Badge key={sid} variant="outline" className="gap-1">
-                      {getStudentName(sid)}
+                      {getAccountName(sid)}
                       <button onClick={() => removeFromCourse(course.id, sid, 'student')} className="hover:text-destructive ml-1">
                         <Trash2 className="h-3 w-3" />
                       </button>
@@ -196,7 +180,7 @@ const GestionCursos = () => {
                 <div className="flex flex-wrap gap-2">
                   {course.teachers.map(tid => (
                     <Badge key={tid} variant="outline" className="gap-1">
-                      {getTeacherName(tid)}
+                      {getAccountName(tid)}
                       <button onClick={() => removeFromCourse(course.id, tid, 'teacher')} className="hover:text-destructive ml-1">
                         <Trash2 className="h-3 w-3" />
                       </button>
@@ -210,6 +194,9 @@ const GestionCursos = () => {
             </CardContent>
           </Card>
         ))}
+        {!loading && courses.length === 0 && (
+          <p className="text-center text-muted-foreground py-8">No hay cursos creados aún.</p>
+        )}
       </div>
 
       {/* Create Course Dialog */}
@@ -242,7 +229,7 @@ const GestionCursos = () => {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowCreateDialog(false)}>Cancelar</Button>
-            <Button onClick={createCourse} disabled={!newCourseName.trim() || !newCourseGrade}>Crear</Button>
+            <Button onClick={handleCreateCourse} disabled={!newCourseName.trim() || !newCourseGrade}>Crear</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

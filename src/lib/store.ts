@@ -1,6 +1,15 @@
 import { create } from 'zustand';
-import { UserRole, User } from './types';
-import { userService } from './firebase-services';
+import { UserRole } from './types';
+import { useAccountsStore, Account } from './accounts-store';
+
+export interface User {
+  id: string;
+  name: string;
+  email: string;
+  role: UserRole;
+  avatar?: string;
+  grade?: string;
+}
 
 interface AppState {
   currentRole: UserRole | null;
@@ -26,13 +35,25 @@ export const useAppStore = create<AppState>((set, get) => ({
   login: async (email: string, password: string) => {
     set({ isLoading: true });
     try {
-      const users = await userService.getByEmail(email);
-      if (users.length > 0) {
-        const user = users[0];
+      // Ensure accounts are loaded
+      const accountsStore = useAccountsStore.getState();
+      if (!accountsStore.loaded) {
+        await accountsStore.fetchAccounts();
+      }
+      
+      const account = useAccountsStore.getState().getByEmail(email);
+      if (account && account.status === 'activo') {
+        const user: User = {
+          id: account.id,
+          name: `${account.firstName} ${account.lastName}`,
+          email: account.email,
+          role: account.role,
+          grade: account.grade,
+        };
         set({ 
           user, 
-          currentRole: user.role, 
-          currentUserId: user.id,
+          currentRole: account.role, 
+          currentUserId: account.id,
           isLoading: false 
         });
         return true;

@@ -4,13 +4,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { mockSubjects, mockStudents, ALL_MONTHS } from '@/lib/mock-data';
+import { ALL_MONTHS } from '@/lib/mock-data';
 import { Label } from '@/components/ui/label';
-import { Save, Send, Layers, Plus, Trash2, Edit2, Eye, FileText } from 'lucide-react';
+import { Save, Send, Layers, Plus, Trash2, Edit2, FileText } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { usePlanillasStore, TaskRow, Planilla } from '@/lib/planillas-store';
 import { useAppStore } from '@/lib/store';
+import { useAccountsStore } from '@/lib/accounts-store';
+import { useCoursesStore } from '@/lib/courses-store';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 const PlanillaMensual = () => {
@@ -18,31 +20,53 @@ const PlanillaMensual = () => {
   const { toast } = useToast();
   const { currentRole, user } = useAppStore();
   const { planillas, loading, fetchPlanillas, savePlanilla, updatePlanilla, deletePlanilla } = usePlanillasStore();
+  const { accounts, fetchAccounts } = useAccountsStore();
+  const { courses, fetchCourses } = useCoursesStore();
 
-  const TEACHER_ID = user?.id || 't1';
+  const TEACHER_ID = user?.id || '';
   const teacherName = user?.name || 'Profesor';
 
   useEffect(() => {
     fetchPlanillas();
+    fetchAccounts();
+    fetchCourses();
   }, []);
 
-  // Teacher's subjects
-  const teacherSubjects = mockSubjects.filter(s => s.teacherId === TEACHER_ID);
-  const [selectedSubjectId, setSelectedSubjectId] = useState(teacherSubjects[0]?.id || '');
+  // Get courses where this teacher is assigned
+  const teacherCourses = courses.filter(c => c.teachers.includes(TEACHER_ID));
+  
+  // Build a list of "subjects" from courses (grade-based)
+  const teacherSubjects = teacherCourses.map(c => ({
+    id: c.id,
+    name: c.name,
+    grade: c.grade,
+    hoursPerWeek: 4, // default
+  }));
+
+  const [selectedSubjectId, setSelectedSubjectId] = useState('');
   const [selectedMonth, setSelectedMonth] = useState('3');
   const [activeTab, setActiveTab] = useState('crear');
 
-  const subject = mockSubjects.find(s => s.id === selectedSubjectId);
+  // Set default selection when courses load
+  useEffect(() => {
+    if (teacherSubjects.length > 0 && !selectedSubjectId) {
+      setSelectedSubjectId(teacherSubjects[0].id);
+    }
+  }, [teacherSubjects.length]);
+
+  const subject = teacherSubjects.find(s => s.id === selectedSubjectId);
   const month = parseInt(selectedMonth);
   const monthName = ALL_MONTHS.find(m => m.month === month)?.name || '';
 
-  const students = subject
-    ? mockStudents
-        .filter(s => s.grade === subject.grade && s.status === 'activo')
+  // Get students from the selected course
+  const selectedCourse = courses.find(c => c.id === selectedSubjectId);
+  const students = selectedCourse
+    ? accounts
+        .filter(a => selectedCourse.students.includes(a.id) && a.role === 'alumno' && a.status === 'activo')
         .sort((a, b) => a.lastName.localeCompare(b.lastName))
     : [];
 
-  // Local task/score state for creating new planilla
+  // Local task/score state
   const generateDefaultTasks = (hours: number): TaskRow[] =>
     Array.from({ length: hours }, (_, i) => ({
       id: `task-${i + 1}`,
@@ -53,7 +77,6 @@ const PlanillaMensual = () => {
   const [tasks, setTasks] = useState<TaskRow[]>([]);
   const [scores, setScores] = useState<Record<string, Record<string, number>>>({});
 
-  // Initialize tasks when subject changes
   useEffect(() => {
     if (subject) {
       setTasks(generateDefaultTasks(subject.hoursPerWeek || 4));
@@ -97,7 +120,7 @@ const PlanillaMensual = () => {
     setEditingTask(null);
   };
 
-  // Check if planilla already exists for this subject+month
+  // Check if planilla already exists
   const existingPlanilla = planillas.find(
     p => p.subjectId === selectedSubjectId && p.month === month && p.year === 2026 && p.teacherId === TEACHER_ID
   );
@@ -174,7 +197,7 @@ const PlanillaMensual = () => {
           submittedDate: new Date().toISOString(),
         });
       }
-      toast({ title: 'Planilla enviada', description: `Planilla enviada al Coordinador para aprobación` });
+      toast({ title: 'Planilla enviada', description: 'Planilla enviada al Coordinador para aprobación' });
     } catch {
       toast({ title: 'Error', description: 'No se pudo enviar la planilla', variant: 'destructive' });
     } finally {
@@ -182,7 +205,7 @@ const PlanillaMensual = () => {
     }
   };
 
-  // Load existing planilla data when switching subject/month
+  // Load existing planilla data
   useEffect(() => {
     if (existingPlanilla) {
       setTasks(existingPlanilla.tasks);
@@ -201,7 +224,6 @@ const PlanillaMensual = () => {
     }
   };
 
-  // My planillas list
   const myPlanillas = planillas.filter(p => p.teacherId === TEACHER_ID);
 
   const statusBadge = (status: Planilla['status']) => {
@@ -217,7 +239,7 @@ const PlanillaMensual = () => {
     return (
       <div className="p-8 text-center text-muted-foreground">
         <Layers className="h-12 w-12 mx-auto mb-4 opacity-50" />
-        <p>No tenés materias asignadas.</p>
+        <p>No tenés cursos asignados. Pedí al Coordinador que te asigne a un curso.</p>
       </div>
     );
   }
@@ -239,12 +261,11 @@ const PlanillaMensual = () => {
         </TabsList>
 
         <TabsContent value="crear" className="space-y-6">
-          {/* Filters */}
           <div className="flex gap-4 flex-wrap">
             <div className="space-y-1">
-              <Label>Materia</Label>
+              <Label>Curso</Label>
               <Select value={selectedSubjectId} onValueChange={setSelectedSubjectId}>
-                <SelectTrigger className="w-72"><SelectValue /></SelectTrigger>
+                <SelectTrigger className="w-72"><SelectValue placeholder="Seleccionar curso" /></SelectTrigger>
                 <SelectContent>
                   {teacherSubjects.map(s => (
                     <SelectItem key={s.id} value={s.id}>{s.name} ({s.grade})</SelectItem>
@@ -277,94 +298,103 @@ const PlanillaMensual = () => {
           {subject && (
             <>
               <div className="bg-primary/10 border border-primary/20 rounded-lg p-3 text-sm">
-                <strong>{subject.name}</strong> — {subject.grade} · {subject.hoursPerWeek} hs/semana ·
+                <strong>{subject.name}</strong> — {subject.grade} ·
                 <Badge variant="secondary" className="ml-2">TP Máximo: {totalMaxPoints} pts</Badge>
                 <span className="text-muted-foreground ml-2">(cada tarea = 2 pts)</span>
+                <span className="text-muted-foreground ml-2">· {students.length} alumnos</span>
               </div>
 
-              {/* Task management */}
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-sm font-medium">Tareas del mes:</span>
-                {tasks.map(task => (
-                  <Badge key={task.id} variant="outline" className="gap-1 pr-1">
-                    {task.name} ({task.maxPoints}pts)
-                    <button onClick={() => startEditTask(task)} className="ml-1 hover:text-primary"><Edit2 className="h-3 w-3" /></button>
-                    {tasks.length > 1 && (
-                      <button onClick={() => removeTask(task.id)} className="hover:text-destructive"><Trash2 className="h-3 w-3" /></button>
-                    )}
-                  </Badge>
-                ))}
-                <Button variant="outline" size="sm" onClick={addTask}>
-                  <Plus className="h-3 w-3 mr-1" /> Agregar Tarea
-                </Button>
-              </div>
+              {/* Task management - hidden when enviado */}
+              {existingPlanilla?.status !== 'enviado' && existingPlanilla?.status !== 'aprobado' && (
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-sm font-medium">Tareas del mes:</span>
+                  {tasks.map(task => (
+                    <Badge key={task.id} variant="outline" className="gap-1 pr-1">
+                      {task.name} ({task.maxPoints}pts)
+                      <button onClick={() => startEditTask(task)} className="ml-1 hover:text-primary"><Edit2 className="h-3 w-3" /></button>
+                      {tasks.length > 1 && (
+                        <button onClick={() => removeTask(task.id)} className="hover:text-destructive"><Trash2 className="h-3 w-3" /></button>
+                      )}
+                    </Badge>
+                  ))}
+                  <Button variant="outline" size="sm" onClick={addTask}>
+                    <Plus className="h-3 w-3 mr-1" /> Agregar Tarea
+                  </Button>
+                </div>
+              )}
 
-              {/* Grade table */}
-              <Card>
-                <CardContent className="p-0 overflow-x-auto">
-                  <div className="text-center py-3 border-b border-border px-4">
-                    <h3 className="font-bold text-lg">Planilla de Informe Mensual — {subject.name}</h3>
-                    <p className="font-semibold text-primary">{monthName} de 2026</p>
-                    <p className="text-sm text-muted-foreground">
-                      <strong>Curso:</strong> {subject.grade} Bachillerato Técnico en Informática
-                    </p>
-                  </div>
-                  <table className="w-full text-xs min-w-[600px]">
-                    <thead>
-                      <tr className="border-b border-border">
-                        <th className="text-center py-2 px-2 border-r border-border w-10 bg-muted/50">N°</th>
-                        <th className="text-left py-2 px-3 border-r border-border min-w-[200px] bg-muted/50">Apellidos y Nombres</th>
-                        {tasks.map(task => (
-                          <th key={task.id} className="text-center py-2 px-1 border-r border-border bg-muted/50 min-w-[60px]">
-                            <div className="text-[10px] leading-tight font-medium">{task.name}</div>
-                            <div className="text-[9px] text-muted-foreground">({task.maxPoints}pts)</div>
+              {students.length === 0 ? (
+                <div className="text-center text-muted-foreground py-8 border border-dashed rounded-lg">
+                  <p>No hay alumnos asignados a este curso.</p>
+                  <p className="text-xs mt-1">El Coordinador debe asignar alumnos desde Gestión de Cursos.</p>
+                </div>
+              ) : (
+                <Card>
+                  <CardContent className="p-0 overflow-x-auto">
+                    <div className="text-center py-3 border-b border-border px-4">
+                      <h3 className="font-bold text-lg">Planilla de Informe Mensual — {subject.name}</h3>
+                      <p className="font-semibold text-primary">{monthName} de 2026</p>
+                      <p className="text-sm text-muted-foreground">
+                        <strong>Curso:</strong> {subject.grade} Bachillerato Técnico en Informática
+                      </p>
+                    </div>
+                    <table className="w-full text-xs min-w-[600px]">
+                      <thead>
+                        <tr className="border-b border-border">
+                          <th className="text-center py-2 px-2 border-r border-border w-10 bg-muted/50">N°</th>
+                          <th className="text-left py-2 px-3 border-r border-border min-w-[200px] bg-muted/50">Apellidos y Nombres</th>
+                          {tasks.map(task => (
+                            <th key={task.id} className="text-center py-2 px-1 border-r border-border bg-muted/50 min-w-[60px]">
+                              <div className="text-[10px] leading-tight font-medium">{task.name}</div>
+                              <div className="text-[9px] text-muted-foreground">({task.maxPoints}pts)</div>
+                            </th>
+                          ))}
+                          <th className="text-center py-2 px-2 bg-primary/10 min-w-[60px]">
+                            <div className="text-[10px] font-bold">TOTAL</div>
+                            <div className="text-[9px] text-muted-foreground">/{totalMaxPoints}</div>
                           </th>
-                        ))}
-                        <th className="text-center py-2 px-2 bg-primary/10 min-w-[60px]">
-                          <div className="text-[10px] font-bold">TOTAL</div>
-                          <div className="text-[9px] text-muted-foreground">/{totalMaxPoints}</div>
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {students.map((student, idx) => {
-                        const total = getStudentTotal(student.id);
-                        const pct = totalMaxPoints > 0 ? (total / totalMaxPoints) * 100 : 0;
-                        return (
-                          <tr key={student.id} className="border-b border-border hover:bg-muted/20">
-                            <td className="text-center py-1 px-2 border-r border-border text-muted-foreground font-medium">{idx + 1}</td>
-                            <td className="py-1 px-3 border-r border-border font-medium whitespace-nowrap">
-                              {student.lastName}, {student.firstName}
-                            </td>
-                            {tasks.map(task => (
-                              <td key={task.id} className="text-center py-1 px-1 border-r border-border">
-                                <Input
-                                  type="number"
-                                  min={0}
-                                  max={task.maxPoints}
-                                  value={getScore(student.id, task.id) || ''}
-                                  onChange={(e) => setScore(student.id, task.id, e.target.value, task.maxPoints)}
-                                  className="w-12 h-7 mx-auto text-center text-xs font-bold p-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                                  placeholder="-"
-                                  disabled={existingPlanilla?.status === 'aprobado'}
-                                />
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {students.map((student, idx) => {
+                          const total = getStudentTotal(student.id);
+                          const pct = totalMaxPoints > 0 ? (total / totalMaxPoints) * 100 : 0;
+                          return (
+                            <tr key={student.id} className="border-b border-border hover:bg-muted/20">
+                              <td className="text-center py-1 px-2 border-r border-border text-muted-foreground font-medium">{idx + 1}</td>
+                              <td className="py-1 px-3 border-r border-border font-medium whitespace-nowrap">
+                                {student.lastName}, {student.firstName}
                               </td>
-                            ))}
-                            <td className={`text-center py-1 px-2 font-bold text-sm ${
-                              pct >= 80 ? 'text-green-600' : pct >= 50 ? 'text-amber-600' : total > 0 ? 'text-red-600' : 'text-muted-foreground'
-                            }`}>
-                              {total > 0 ? total : '-'}
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </CardContent>
-              </Card>
+                              {tasks.map(task => (
+                                <td key={task.id} className="text-center py-1 px-1 border-r border-border">
+                                  <Input
+                                    type="number"
+                                    min={0}
+                                    max={task.maxPoints}
+                                    value={getScore(student.id, task.id) || ''}
+                                    onChange={(e) => setScore(student.id, task.id, e.target.value, task.maxPoints)}
+                                    className="w-12 h-7 mx-auto text-center text-xs font-bold p-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                    placeholder="-"
+                                    disabled={existingPlanilla?.status === 'aprobado' || existingPlanilla?.status === 'enviado'}
+                                  />
+                                </td>
+                              ))}
+                              <td className={`text-center py-1 px-2 font-bold text-sm ${
+                                pct >= 80 ? 'text-green-600' : pct >= 50 ? 'text-amber-600' : total > 0 ? 'text-red-600' : 'text-muted-foreground'
+                              }`}>
+                                {total > 0 ? total : '-'}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </CardContent>
+                </Card>
+              )}
 
               {/* Actions */}
-              {existingPlanilla?.status !== 'aprobado' && existingPlanilla?.status !== 'enviado' && (
+              {existingPlanilla?.status !== 'aprobado' && existingPlanilla?.status !== 'enviado' && students.length > 0 && (
                 <div className="flex gap-3">
                   <Button variant="outline" onClick={handleSave} disabled={loading || submitting}>
                     <Save className="h-4 w-4 mr-2" />Guardar Borrador
