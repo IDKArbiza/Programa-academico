@@ -189,7 +189,7 @@ const GestionCuentas = () => {
               <Label>Rol</Label>
               <Select value={newAccount.role} onValueChange={(v) => setNewAccount(p => ({ ...p, role: v }))}>
                 <SelectTrigger><SelectValue placeholder="Seleccionar rol" /></SelectTrigger>
-                <SelectContent>
+                <SelectContent className="z-[200]">
                   <SelectItem value="alumno">Alumno</SelectItem>
                   <SelectItem value="docente">Profesor</SelectItem>
                   <SelectItem value="coordinador">Coordinador</SelectItem>
@@ -201,7 +201,7 @@ const GestionCuentas = () => {
                 <Label>Curso</Label>
                 <Select value={newAccount.grade} onValueChange={(v) => setNewAccount(p => ({ ...p, grade: v }))}>
                   <SelectTrigger><SelectValue placeholder="Seleccionar curso" /></SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="z-[200]">
                     <SelectItem value="1° Año">1° Año</SelectItem>
                     <SelectItem value="2° Año">2° Año</SelectItem>
                     <SelectItem value="3° Año">3° Año</SelectItem>
