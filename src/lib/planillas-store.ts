@@ -50,6 +50,11 @@ interface PlanillasState {
 
 const COLLECTION = 'planillas';
 
+const omitUndefined = <T extends Record<string, unknown>>(data: T): Partial<T> =>
+  Object.fromEntries(
+    Object.entries(data).filter(([, value]) => value !== undefined)
+  ) as Partial<T>;
+
 export const usePlanillasStore = create<PlanillasState>((set, get) => ({
   planillas: [],
   loading: false,
@@ -73,10 +78,13 @@ export const usePlanillasStore = create<PlanillasState>((set, get) => ({
 
   savePlanilla: async (planilla) => {
     try {
-      const docRef = await addDoc(collection(db, COLLECTION), {
+      const payload = omitUndefined({
         ...planilla,
         createdAt: Timestamp.now().toDate().toISOString(),
         updatedAt: Timestamp.now().toDate().toISOString(),
+      });
+      const docRef = await addDoc(collection(db, COLLECTION), {
+        ...payload,
       });
       const newPlanilla = { ...planilla, id: docRef.id };
       set(state => ({ planillas: [...state.planillas, newPlanilla] }));
@@ -90,9 +98,12 @@ export const usePlanillasStore = create<PlanillasState>((set, get) => ({
   updatePlanilla: async (id, data) => {
     try {
       const docRef = doc(db, COLLECTION, id);
-      await updateDoc(docRef, {
+      const payload = omitUndefined({
         ...data,
         updatedAt: Timestamp.now().toDate().toISOString(),
+      });
+      await updateDoc(docRef, {
+        ...payload,
       });
       set(state => ({
         planillas: state.planillas.map(p => p.id === id ? { ...p, ...data } : p),

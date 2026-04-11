@@ -32,16 +32,35 @@ const PlanillaMensual = () => {
     fetchCourses();
   }, []);
 
-  // Get courses where this teacher is assigned
-  const teacherCourses = courses.filter(c => c.teachers.includes(TEACHER_ID));
-  
-  // Build a list of "subjects" from courses (grade-based)
-  const teacherSubjects = teacherCourses.map(c => ({
-    id: c.id,
-    name: c.name,
-    grade: c.grade,
-    hoursPerWeek: 4, // default
-  }));
+  const teacherSubjects = courses.flatMap(course => {
+    const teacherAssignments = course.teacherAssignments || [];
+
+    if (teacherAssignments.length > 0) {
+      return teacherAssignments
+        .filter(assignment => assignment.teacherId === TEACHER_ID)
+        .map(assignment => ({
+          subjectId: assignment.id,
+          courseId: course.id,
+          name: assignment.subjectName,
+          courseName: course.name,
+          grade: course.grade,
+          hoursPerWeek: 4,
+        }));
+    }
+
+    if (!course.teachers.includes(TEACHER_ID)) {
+      return [];
+    }
+
+    return [{
+      subjectId: course.id,
+      courseId: course.id,
+      name: course.name,
+      courseName: course.name,
+      grade: course.grade,
+      hoursPerWeek: 4,
+    }];
+  });
 
   const [selectedSubjectId, setSelectedSubjectId] = useState('');
   const [selectedMonth, setSelectedMonth] = useState('3');
@@ -50,16 +69,16 @@ const PlanillaMensual = () => {
   // Set default selection when courses load
   useEffect(() => {
     if (teacherSubjects.length > 0 && !selectedSubjectId) {
-      setSelectedSubjectId(teacherSubjects[0].id);
+      setSelectedSubjectId(teacherSubjects[0].subjectId);
     }
   }, [teacherSubjects.length]);
 
-  const subject = teacherSubjects.find(s => s.id === selectedSubjectId);
+  const subject = teacherSubjects.find(s => s.subjectId === selectedSubjectId);
   const month = parseInt(selectedMonth);
   const monthName = ALL_MONTHS.find(m => m.month === month)?.name || '';
 
   // Get students from the selected course
-  const selectedCourse = courses.find(c => c.id === selectedSubjectId);
+  const selectedCourse = courses.find(c => c.id === subject?.courseId);
   const students = selectedCourse
     ? accounts
         .filter(a => selectedCourse.students.includes(a.id) && a.role === 'alumno' && a.status === 'activo')
@@ -143,7 +162,7 @@ const PlanillaMensual = () => {
         });
       } else {
         await savePlanilla({
-          subjectId: selectedSubjectId,
+          subjectId: subject.subjectId,
           subjectName: subject.name,
           teacherId: TEACHER_ID,
           teacherName,
@@ -183,7 +202,7 @@ const PlanillaMensual = () => {
         });
       } else {
         await savePlanilla({
-          subjectId: selectedSubjectId,
+          subjectId: subject.subjectId,
           subjectName: subject.name,
           teacherId: TEACHER_ID,
           teacherName,
@@ -263,12 +282,12 @@ const PlanillaMensual = () => {
         <TabsContent value="crear" className="space-y-6">
           <div className="flex gap-4 flex-wrap">
             <div className="space-y-1">
-              <Label>Curso</Label>
+              <Label>Materia / Curso</Label>
               <Select value={selectedSubjectId} onValueChange={setSelectedSubjectId}>
-                <SelectTrigger className="w-72"><SelectValue placeholder="Seleccionar curso" /></SelectTrigger>
+                <SelectTrigger className="w-72"><SelectValue placeholder="Seleccionar materia" /></SelectTrigger>
                 <SelectContent>
                   {teacherSubjects.map(s => (
-                    <SelectItem key={s.id} value={s.id}>{s.name} ({s.grade})</SelectItem>
+                    <SelectItem key={s.subjectId} value={s.subjectId}>{s.name} - {s.courseName} ({s.grade})</SelectItem>
                   ))}
                 </SelectContent>
               </Select>

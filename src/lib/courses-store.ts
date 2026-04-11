@@ -2,6 +2,12 @@ import { create } from 'zustand';
 import { collection, doc, addDoc, getDocs, updateDoc, deleteDoc, Timestamp } from 'firebase/firestore';
 import { db } from './firebase';
 
+export interface TeacherAssignment {
+  id: string;
+  teacherId: string;
+  subjectName: string;
+}
+
 export interface Course {
   id: string;
   name: string;
@@ -10,6 +16,7 @@ export interface Course {
   students: string[];
   teachers: string[];
   subjects: string[];
+  teacherAssignments?: TeacherAssignment[];
   createdAt?: string;
   updatedAt?: string;
 }
@@ -28,6 +35,11 @@ interface CoursesState {
 }
 
 const COLLECTION = 'courses';
+
+const omitUndefined = <T extends Record<string, unknown>>(data: T): Partial<T> =>
+  Object.fromEntries(
+    Object.entries(data).filter(([, value]) => value !== undefined)
+  ) as Partial<T>;
 
 export const useCoursesStore = create<CoursesState>((set, get) => ({
   courses: [],
@@ -52,10 +64,13 @@ export const useCoursesStore = create<CoursesState>((set, get) => ({
 
   createCourse: async (course) => {
     try {
-      const docRef = await addDoc(collection(db, COLLECTION), {
+      const payload = omitUndefined({
         ...course,
         createdAt: Timestamp.now().toDate().toISOString(),
         updatedAt: Timestamp.now().toDate().toISOString(),
+      });
+      const docRef = await addDoc(collection(db, COLLECTION), {
+        ...payload,
       });
       const newCourse = { ...course, id: docRef.id };
       set(state => ({ courses: [...state.courses, newCourse] }));
@@ -69,9 +84,12 @@ export const useCoursesStore = create<CoursesState>((set, get) => ({
   updateCourse: async (id, data) => {
     try {
       const docRef = doc(db, COLLECTION, id);
-      await updateDoc(docRef, {
+      const payload = omitUndefined({
         ...data,
         updatedAt: Timestamp.now().toDate().toISOString(),
+      });
+      await updateDoc(docRef, {
+        ...payload,
       });
       set(state => ({
         courses: state.courses.map(c => c.id === id ? { ...c, ...data } : c),

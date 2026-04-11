@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { FolderOpen, Plus, Users, BookOpen, Trash2, UserPlus } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAccountsStore } from '@/lib/accounts-store';
-import { useCoursesStore } from '@/lib/courses-store';
+import { Course, TeacherAssignment, useCoursesStore } from '@/lib/courses-store';
 
 const GestionCursos = () => {
   const { toast } = useToast();
@@ -24,10 +24,11 @@ const GestionCursos = () => {
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [newCourseName, setNewCourseName] = useState('');
   const [newCourseGrade, setNewCourseGrade] = useState('');
-  const [selectedCourse, setSelectedCourse] = useState<typeof courses[0] | null>(null);
+  const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
   const [showAssignDialog, setShowAssignDialog] = useState(false);
   const [assignType, setAssignType] = useState<'student' | 'teacher'>('student');
   const [selectedAccountId, setSelectedAccountId] = useState('');
+  const [selectedSubjectName, setSelectedSubjectName] = useState('');
 
   const students = accounts.filter(a => a.role === 'alumno' && a.status === 'activo');
   const teachers = accounts.filter(a => (a.role === 'docente' || a.role === 'coordinador' || a.role === 'director') && a.status === 'activo');
@@ -42,6 +43,7 @@ const GestionCursos = () => {
         students: [],
         teachers: [],
         subjects: [],
+        teacherAssignments: [],
       });
       setNewCourseName('');
       setNewCourseGrade('');
@@ -61,36 +63,105 @@ const GestionCursos = () => {
     }
   };
 
-  const openAssignDialog = (course: typeof courses[0], type: 'student' | 'teacher') => {
+  const openAssignDialog = (course: Course, type: 'student' | 'teacher') => {
     setSelectedCourse(course);
     setAssignType(type);
     setSelectedAccountId('');
+    setSelectedSubjectName('');
     setShowAssignDialog(true);
   };
 
   const assignAccount = async () => {
     if (!selectedCourse || !selectedAccountId) return;
-    const key = assignType === 'student' ? 'students' : 'teachers';
-    if (selectedCourse[key].includes(selectedAccountId)) return;
-    
+
     try {
-      await updateCourse(selectedCourse.id, {
-        [key]: [...selectedCourse[key], selectedAccountId],
-      });
+      if (assignType === 'student') {
+        if (selectedCourse.students.includes(selectedAccountId)) return;
+
+        await updateCourse(selectedCourse.id, {
+          students: [...selectedCourse.students, selectedAccountId],
+        });
+      } else {
+        const subjectName = selectedSubjectName.trim();
+        if (!subjectName) return;
+
+        const teacherAssignments = selectedCourse.teacherAssignments || [];
+        const alreadyAssigned = teacherAssignments.some(
+          assignment =>
+            assignment.teacherId === selectedAccountId &&
+            assignment.subjectName.toLowerCase() === subjectName.toLowerCase()
+        );
+
+        if (alreadyAssigned) {
+          toast({
+            title: 'Asignación duplicada',
+            description: 'Ese profesor ya tiene esa materia asignada en este curso.',
+            variant: 'destructive',
+          });
+          return;
+        }
+
+        const newAssignment: TeacherAssignment = {
+          id: `${selectedCourse.id}-${selectedAccountId}-${Date.now()}`,
+          teacherId: selectedAccountId,
+          subjectName,
+        };
+
+        await updateCourse(selectedCourse.id, {
+          teachers: selectedCourse.teachers.includes(selectedAccountId)
+            ? selectedCourse.teachers
+            : [...selectedCourse.teachers, selectedAccountId],
+          teacherAssignments: [...teacherAssignments, newAssignment],
+          subjects: selectedCourse.subjects.includes(subjectName)
+            ? selectedCourse.subjects
+            : [...selectedCourse.subjects, subjectName],
+        });
+      }
+
       setShowAssignDialog(false);
-      toast({ title: `${assignType === 'student' ? 'Alumno' : 'Profesor'} asignado al curso` });
+      toast({
+        title: `${assignType === 'student' ? 'Alumno' : 'Profesor'} asignado al curso`,
+        description: assignType === 'teacher' ? `Materia: ${selectedSubjectName.trim()}` : undefined,
+      });
     } catch {
       toast({ title: 'Error', variant: 'destructive' });
     }
   };
 
-  const removeFromCourse = async (courseId: string, accountId: string, type: 'student' | 'teacher') => {
+  const removeStudentFromCourse = async (courseId: string, accountId: string) => {
     const course = courses.find(c => c.id === courseId);
     if (!course) return;
-    const key = type === 'student' ? 'students' : 'teachers';
+
     try {
       await updateCourse(courseId, {
-        [key]: course[key].filter(id => id !== accountId),
+        students: course.students.filter(id => id !== accountId),
+      });
+    } catch {
+      toast({ title: 'Error', variant: 'destructive' });
+    }
+  };
+
+  const removeTeacherAssignment = async (course: Course, assignmentId: string) => {
+    const teacherAssignments = course.teacherAssignments || [];
+    const nextAssignments = teacherAssignments.filter(assignment => assignment.id !== assignmentId);
+    const nextTeacherIds = Array.from(new Set(nextAssignments.map(assignment => assignment.teacherId)));
+    const nextSubjects = Array.from(new Set(nextAssignments.map(assignment => assignment.subjectName)));
+
+    try {
+      await updateCourse(course.id, {
+        teachers: nextTeacherIds,
+        teacherAssignments: nextAssignments,
+        subjects: nextSubjects,
+      });
+    } catch {
+      toast({ title: 'Error', variant: 'destructive' });
+    }
+  };
+
+  const removeLegacyTeacherFromCourse = async (course: Course, teacherId: string) => {
+    try {
+      await updateCourse(course.id, {
+        teachers: course.teachers.filter(id => id !== teacherId),
       });
     } catch {
       toast({ title: 'Error', variant: 'destructive' });
@@ -106,9 +177,7 @@ const GestionCursos = () => {
     ? students.filter(s => !selectedCourse.students.includes(s.id))
     : [];
 
-  const availableTeachers = selectedCourse
-    ? teachers.filter(t => !selectedCourse.teachers.includes(t.id))
-    : [];
+  const availableTeachers = teachers;
 
   return (
     <div className="space-y-6">
@@ -142,7 +211,6 @@ const GestionCursos = () => {
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
-              {/* Alumnos */}
               <div>
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-sm font-medium flex items-center gap-1">
@@ -156,7 +224,7 @@ const GestionCursos = () => {
                   {course.students.map(sid => (
                     <Badge key={sid} variant="outline" className="gap-1">
                       {getAccountName(sid)}
-                      <button onClick={() => removeFromCourse(course.id, sid, 'student')} className="hover:text-destructive ml-1">
+                      <button onClick={() => removeStudentFromCourse(course.id, sid)} className="hover:text-destructive ml-1">
                         <Trash2 className="h-3 w-3" />
                       </button>
                     </Badge>
@@ -167,26 +235,33 @@ const GestionCursos = () => {
                 </div>
               </div>
 
-              {/* Profesores */}
               <div>
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-sm font-medium flex items-center gap-1">
-                    <BookOpen className="h-4 w-4" /> Profesores ({course.teachers.length})
+                    <BookOpen className="h-4 w-4" /> Profesores ({(course.teacherAssignments || []).length})
                   </span>
                   <Button variant="outline" size="sm" onClick={() => openAssignDialog(course, 'teacher')}>
                     <UserPlus className="h-3 w-3 mr-1" /> Añadir
                   </Button>
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  {course.teachers.map(tid => (
-                    <Badge key={tid} variant="outline" className="gap-1">
-                      {getAccountName(tid)}
-                      <button onClick={() => removeFromCourse(course.id, tid, 'teacher')} className="hover:text-destructive ml-1">
+                  {(course.teacherAssignments || []).map(assignment => (
+                    <Badge key={assignment.id} variant="outline" className="gap-1">
+                      {getAccountName(assignment.teacherId)} - {assignment.subjectName}
+                      <button onClick={() => removeTeacherAssignment(course, assignment.id)} className="hover:text-destructive ml-1">
                         <Trash2 className="h-3 w-3" />
                       </button>
                     </Badge>
                   ))}
-                  {course.teachers.length === 0 && (
+                  {(!course.teacherAssignments || course.teacherAssignments.length === 0) && course.teachers.map(teacherId => (
+                    <Badge key={teacherId} variant="outline" className="gap-1">
+                      {getAccountName(teacherId)} - Sin materia definida
+                      <button onClick={() => removeLegacyTeacherFromCourse(course, teacherId)} className="hover:text-destructive ml-1">
+                        <Trash2 className="h-3 w-3" />
+                      </button>
+                    </Badge>
+                  ))}
+                  {(!course.teacherAssignments || course.teacherAssignments.length === 0) && course.teachers.length === 0 && (
                     <span className="text-xs text-muted-foreground italic">Sin profesores asignados</span>
                   )}
                 </div>
@@ -199,7 +274,6 @@ const GestionCursos = () => {
         )}
       </div>
 
-      {/* Create Course Dialog */}
       <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
         <DialogContent>
           <DialogHeader>
@@ -234,7 +308,6 @@ const GestionCursos = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Assign Account Dialog */}
       <Dialog open={showAssignDialog} onOpenChange={setShowAssignDialog}>
         <DialogContent>
           <DialogHeader>
@@ -260,10 +333,20 @@ const GestionCursos = () => {
                 </SelectContent>
               </Select>
             </div>
+            {assignType === 'teacher' && (
+              <div className="space-y-2">
+                <Label>Materia</Label>
+                <Input
+                  value={selectedSubjectName}
+                  onChange={(e) => setSelectedSubjectName(e.target.value)}
+                  placeholder="Ej: Matemática, Programación, Historia"
+                />
+              </div>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowAssignDialog(false)}>Cancelar</Button>
-            <Button onClick={assignAccount} disabled={!selectedAccountId}>Añadir</Button>
+            <Button onClick={assignAccount} disabled={!selectedAccountId || (assignType === 'teacher' && !selectedSubjectName.trim())}>Añadir</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
