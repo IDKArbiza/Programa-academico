@@ -34,6 +34,11 @@ interface AccountsState {
 
 const COLLECTION = 'users';
 
+const omitUndefined = <T extends Record<string, unknown>>(data: T): Partial<T> =>
+  Object.fromEntries(
+    Object.entries(data).filter(([, value]) => value !== undefined)
+  ) as Partial<T>;
+
 export const useAccountsStore = create<AccountsState>((set, get) => ({
   accounts: [],
   loading: false,
@@ -57,10 +62,13 @@ export const useAccountsStore = create<AccountsState>((set, get) => ({
 
   createAccount: async (account) => {
     try {
-      const docRef = await addDoc(collection(db, COLLECTION), {
+      const payload = omitUndefined({
         ...account,
         createdAt: Timestamp.now().toDate().toISOString(),
         updatedAt: Timestamp.now().toDate().toISOString(),
+      });
+      const docRef = await addDoc(collection(db, COLLECTION), {
+        ...payload,
       });
       const newAccount = { ...account, id: docRef.id };
       set(state => ({ accounts: [...state.accounts, newAccount] }));
@@ -74,9 +82,12 @@ export const useAccountsStore = create<AccountsState>((set, get) => ({
   updateAccount: async (id, data) => {
     try {
       const docRef = doc(db, COLLECTION, id);
-      await updateDoc(docRef, {
+      const payload = omitUndefined({
         ...data,
         updatedAt: Timestamp.now().toDate().toISOString(),
+      });
+      await updateDoc(docRef, {
+        ...payload,
       });
       set(state => ({
         accounts: state.accounts.map(a => a.id === id ? { ...a, ...data } : a),
