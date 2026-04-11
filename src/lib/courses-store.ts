@@ -17,6 +17,7 @@ export interface Course {
   teachers: string[];
   subjects: string[];
   teacherAssignments?: TeacherAssignment[];
+  coordinatorId?: string;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -25,10 +26,11 @@ interface CoursesState {
   courses: Course[];
   loading: boolean;
   loaded: boolean;
-  fetchCourses: () => Promise<void>;
+  fetchCourses: (force?: boolean) => Promise<void>;
   createCourse: (course: Omit<Course, 'id'>) => Promise<string>;
   updateCourse: (id: string, data: Partial<Course>) => Promise<void>;
   deleteCourse: (id: string) => Promise<void>;
+  reset: () => void;
   getCourseByGrade: (grade: string) => Course | undefined;
   getStudentCourses: (studentId: string) => Course[];
   getTeacherCourses: (teacherId: string) => Course[];
@@ -46,8 +48,8 @@ export const useCoursesStore = create<CoursesState>((set, get) => ({
   loading: false,
   loaded: false,
 
-  fetchCourses: async () => {
-    if (get().loaded) return;
+  fetchCourses: async (force = false) => {
+    if (get().loaded && !force) return;
     set({ loading: true });
     try {
       const snapshot = await getDocs(collection(db, COLLECTION));
@@ -111,6 +113,8 @@ export const useCoursesStore = create<CoursesState>((set, get) => ({
       throw error;
     }
   },
+
+  reset: () => set({ courses: [], loading: false, loaded: false }),
 
   getCourseByGrade: (grade) => get().courses.find(c => c.grade === grade),
   

@@ -1,9 +1,10 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Route, Routes, Navigate } from "react-router-dom";
+import { BrowserRouter, Route, Routes, Navigate, useLocation } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useAppStore } from "@/lib/store";
+import { UserRole } from "@/lib/types";
 import Index from "./pages/Index.tsx";
 import NotFound from "./pages/NotFound.tsx";
 import AppLayout from "./components/AppLayout";
@@ -24,10 +25,27 @@ import GestionCuentas from "./pages/director/GestionCuentas";
 
 const queryClient = new QueryClient();
 
+const roleHomePath: Record<UserRole, string> = {
+  director: "/director",
+  coordinador: "/coordinador",
+  docente: "/docente",
+  alumno: "/alumno",
+};
+
 const ProtectedRoutes = () => {
   const currentRole = useAppStore((s) => s.currentRole);
+  const location = useLocation();
 
   if (!currentRole) return <Navigate to="/" replace />;
+
+  const allowedPrefix = roleHomePath[currentRole];
+  const isAuthorizedPath =
+    location.pathname === allowedPrefix ||
+    location.pathname.startsWith(`${allowedPrefix}/`);
+
+  if (!isAuthorizedPath) {
+    return <Navigate to={allowedPrefix} replace />;
+  }
 
   return (
     <AppLayout>

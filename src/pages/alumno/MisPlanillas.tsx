@@ -15,8 +15,8 @@ const MisPlanillas = () => {
   const { courses, fetchCourses } = useCoursesStore();
 
   useEffect(() => {
-    fetchPlanillas();
-    fetchCourses();
+    fetchPlanillas(true);
+    fetchCourses(true);
   }, []);
 
   const STUDENT_ID = user?.id || '';
@@ -31,9 +31,13 @@ const MisPlanillas = () => {
   const month = parseInt(selectedMonth);
   const monthName = ALL_MONTHS.find(m => m.month === month)?.name || '';
 
-  // Only show APPROVED planillas for this student's grade
   const approvedPlanillas = planillas.filter(
-    p => p.status === 'aprobado' && p.grade === grade && p.month === month && p.year === 2026
+    p =>
+      p.status === 'aprobado' &&
+      p.month === month &&
+      p.year === 2026 &&
+      p.scores.some(s => s.studentId === STUDENT_ID) &&
+      (studentCourse ? p.courseId === studentCourse.id || p.grade === grade : p.grade === grade)
   );
 
   return (

@@ -27,9 +27,9 @@ const PlanillaMensual = () => {
   const teacherName = user?.name || 'Profesor';
 
   useEffect(() => {
-    fetchPlanillas();
-    fetchAccounts();
-    fetchCourses();
+    fetchPlanillas(true);
+    fetchAccounts(true);
+    fetchCourses(true);
   }, []);
 
   const teacherSubjects = courses.flatMap(course => {
@@ -66,7 +66,6 @@ const PlanillaMensual = () => {
   const [selectedMonth, setSelectedMonth] = useState('3');
   const [activeTab, setActiveTab] = useState('crear');
 
-  // Set default selection when courses load
   useEffect(() => {
     if (teacherSubjects.length > 0 && !selectedSubjectId) {
       setSelectedSubjectId(teacherSubjects[0].subjectId);
@@ -76,20 +75,18 @@ const PlanillaMensual = () => {
   const subject = teacherSubjects.find(s => s.subjectId === selectedSubjectId);
   const month = parseInt(selectedMonth);
   const monthName = ALL_MONTHS.find(m => m.month === month)?.name || '';
-
-  // Get students from the selected course
-  const selectedCourse = courses.find(c => c.id === subject?.courseId);
+  const selectedCourse = courses.find(course => course.id === subject?.courseId);
+  const courseCoordinatorId = selectedCourse?.coordinatorId;
   const students = selectedCourse
     ? accounts
-        .filter(a => selectedCourse.students.includes(a.id) && a.role === 'alumno' && a.status === 'activo')
+        .filter(account => selectedCourse.students.includes(account.id) && account.role === 'alumno' && account.status === 'activo')
         .sort((a, b) => a.lastName.localeCompare(b.lastName))
     : [];
 
-  // Local task/score state
   const generateDefaultTasks = (hours: number): TaskRow[] =>
-    Array.from({ length: hours }, (_, i) => ({
-      id: `task-${i + 1}`,
-      name: `Tarea ${i + 1}`,
+    Array.from({ length: hours }, (_, index) => ({
+      id: `task-${index + 1}`,
+      name: `Tarea ${index + 1}`,
       maxPoints: 2,
     }));
 
@@ -103,7 +100,7 @@ const PlanillaMensual = () => {
     }
   }, [selectedSubjectId]);
 
-  const totalMaxPoints = tasks.reduce((sum, t) => sum + t.maxPoints, 0);
+  const totalMaxPoints = tasks.reduce((sum, task) => sum + task.maxPoints, 0);
 
   const getScore = (studentId: string, taskId: string): number => scores[studentId]?.[taskId] || 0;
 
@@ -111,6 +108,7 @@ const PlanillaMensual = () => {
     const num = parseInt(value);
     const newVal = value === '' ? 0 : (num >= 0 && num <= max ? num : undefined);
     if (newVal === undefined) return;
+
     setScores(prev => ({
       ...prev,
       [studentId]: { ...prev[studentId], [taskId]: newVal },
@@ -118,7 +116,7 @@ const PlanillaMensual = () => {
   };
 
   const getStudentTotal = (studentId: string): number =>
-    tasks.reduce((sum, t) => sum + getScore(studentId, t.id), 0);
+    tasks.reduce((sum, task) => sum + getScore(studentId, task.id), 0);
 
   const addTask = () => {
     setTasks(prev => [...prev, { id: `task-${Date.now()}`, name: `Tarea ${prev.length + 1}`, maxPoints: 2 }]);
@@ -126,37 +124,46 @@ const PlanillaMensual = () => {
 
   const removeTask = (taskId: string) => {
     if (tasks.length <= 1) return;
-    setTasks(prev => prev.filter(t => t.id !== taskId));
+    setTasks(prev => prev.filter(task => task.id !== taskId));
   };
 
   const [editingTask, setEditingTask] = useState<TaskRow | null>(null);
   const [editName, setEditName] = useState('');
 
-  const startEditTask = (task: TaskRow) => { setEditingTask(task); setEditName(task.name); };
+  const startEditTask = (task: TaskRow) => {
+    setEditingTask(task);
+    setEditName(task.name);
+  };
+
   const saveEditTask = () => {
     if (!editingTask || !editName.trim()) return;
-    setTasks(prev => prev.map(t => t.id === editingTask.id ? { ...t, name: editName.trim() } : t));
+    setTasks(prev => prev.map(task => task.id === editingTask.id ? { ...task, name: editName.trim() } : task));
     setEditingTask(null);
   };
 
-  // Check if planilla already exists
   const existingPlanilla = planillas.find(
-    p => p.subjectId === selectedSubjectId && p.month === month && p.year === 2026 && p.teacherId === TEACHER_ID
+    planilla => planilla.subjectId === selectedSubjectId && planilla.month === month && planilla.year === 2026 && planilla.teacherId === TEACHER_ID
   );
+
+  const buildPlanillaScores = () => students.map(student => ({
+    studentId: student.id,
+    scores: scores[student.id] || {},
+  }));
 
   const handleSave = async () => {
     if (!subject || submitting) return;
+
     setSubmitting(true);
-    const planillaScores = students.map(s => ({
-      studentId: s.id,
-      scores: scores[s.id] || {},
-    }));
+    const planillaScores = buildPlanillaScores();
 
     try {
       if (existingPlanilla) {
         await updatePlanilla(existingPlanilla.id, {
           tasks,
           scores: planillaScores,
+          courseId: subject.courseId,
+          courseName: subject.courseName,
+          coordinatorId: courseCoordinatorId,
           status: 'borrador',
           rejectionReason: undefined,
         });
@@ -164,8 +171,11 @@ const PlanillaMensual = () => {
         await savePlanilla({
           subjectId: subject.subjectId,
           subjectName: subject.name,
+          courseId: subject.courseId,
+          courseName: subject.courseName,
           teacherId: TEACHER_ID,
           teacherName,
+          coordinatorId: courseCoordinatorId,
           grade: subject.grade,
           month,
           year: 2026,
@@ -175,6 +185,7 @@ const PlanillaMensual = () => {
           status: 'borrador',
         });
       }
+
       toast({ title: 'Planilla guardada', description: `Borrador de ${subject.name} - ${monthName} guardado` });
     } catch {
       toast({ title: 'Error', description: 'No se pudo guardar la planilla', variant: 'destructive' });
@@ -185,17 +196,26 @@ const PlanillaMensual = () => {
 
   const handleSubmit = async () => {
     if (!subject || submitting) return;
+    if (!courseCoordinatorId) {
+      toast({
+        title: 'Falta coordinador',
+        description: 'Este curso necesita un coordinador asignado antes de enviar la planilla.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     setSubmitting(true);
-    const planillaScores = students.map(s => ({
-      studentId: s.id,
-      scores: scores[s.id] || {},
-    }));
+    const planillaScores = buildPlanillaScores();
 
     try {
       if (existingPlanilla) {
         await updatePlanilla(existingPlanilla.id, {
           tasks,
           scores: planillaScores,
+          courseId: subject.courseId,
+          courseName: subject.courseName,
+          coordinatorId: courseCoordinatorId,
           status: 'enviado',
           submittedDate: new Date().toISOString(),
           rejectionReason: undefined,
@@ -204,8 +224,11 @@ const PlanillaMensual = () => {
         await savePlanilla({
           subjectId: subject.subjectId,
           subjectName: subject.name,
+          courseId: subject.courseId,
+          courseName: subject.courseName,
           teacherId: TEACHER_ID,
           teacherName,
+          coordinatorId: courseCoordinatorId,
           grade: subject.grade,
           month,
           year: 2026,
@@ -216,6 +239,7 @@ const PlanillaMensual = () => {
           submittedDate: new Date().toISOString(),
         });
       }
+
       toast({ title: 'Planilla enviada', description: 'Planilla enviada al Coordinador para aprobación' });
     } catch {
       toast({ title: 'Error', description: 'No se pudo enviar la planilla', variant: 'destructive' });
@@ -224,12 +248,13 @@ const PlanillaMensual = () => {
     }
   };
 
-  // Load existing planilla data
   useEffect(() => {
     if (existingPlanilla) {
       setTasks(existingPlanilla.tasks);
       const scoresMap: Record<string, Record<string, number>> = {};
-      existingPlanilla.scores.forEach(s => { scoresMap[s.studentId] = s.scores; });
+      existingPlanilla.scores.forEach(score => {
+        scoresMap[score.studentId] = score.scores;
+      });
       setScores(scoresMap);
     }
   }, [existingPlanilla?.id]);
@@ -243,22 +268,26 @@ const PlanillaMensual = () => {
     }
   };
 
-  const myPlanillas = planillas.filter(p => p.teacherId === TEACHER_ID);
+  const myPlanillas = planillas.filter(planilla => planilla.teacherId === TEACHER_ID);
 
   const statusBadge = (status: Planilla['status']) => {
     switch (status) {
-      case 'borrador': return <Badge variant="secondary">Borrador</Badge>;
-      case 'enviado': return <Badge className="bg-amber-500/20 text-amber-700 border-amber-300">Enviado</Badge>;
-      case 'aprobado': return <Badge className="bg-green-500/20 text-green-700 border-green-300">Aprobado</Badge>;
-      case 'rechazado': return <Badge variant="destructive">Rechazado</Badge>;
+      case 'borrador':
+        return <Badge variant="secondary">Borrador</Badge>;
+      case 'enviado':
+        return <Badge className="bg-amber-500/20 text-amber-700 border-amber-300">Enviado</Badge>;
+      case 'aprobado':
+        return <Badge className="bg-green-500/20 text-green-700 border-green-300">Aprobado</Badge>;
+      case 'rechazado':
+        return <Badge variant="destructive">Rechazado</Badge>;
     }
   };
 
-  if (teacherSubjects.length === 0 && currentRole === 'docente') {
+  if (teacherSubjects.length === 0 && (currentRole === 'docente' || currentRole === 'coordinador' || currentRole === 'director')) {
     return (
       <div className="p-8 text-center text-muted-foreground">
         <Layers className="h-12 w-12 mx-auto mb-4 opacity-50" />
-        <p>No tenés cursos asignados. Pedí al Coordinador que te asigne a un curso.</p>
+        <p>No tenés materias asignadas todavía.</p>
       </div>
     );
   }
@@ -269,7 +298,7 @@ const PlanillaMensual = () => {
         <Layers className="h-6 w-6 text-primary" />
         <div>
           <h2 className="text-2xl font-bold">Planilla de Informe Mensual</h2>
-          <p className="text-sm text-muted-foreground">Colegio Politécnico CPCC — Nivel Medio</p>
+          <p className="text-sm text-muted-foreground">Colegio Politécnico CPCC - Nivel Medio</p>
         </div>
       </div>
 
@@ -286,19 +315,22 @@ const PlanillaMensual = () => {
               <Select value={selectedSubjectId} onValueChange={setSelectedSubjectId}>
                 <SelectTrigger className="w-72"><SelectValue placeholder="Seleccionar materia" /></SelectTrigger>
                 <SelectContent>
-                  {teacherSubjects.map(s => (
-                    <SelectItem key={s.subjectId} value={s.subjectId}>{s.name} - {s.courseName} ({s.grade})</SelectItem>
+                  {teacherSubjects.map(teacherSubject => (
+                    <SelectItem key={teacherSubject.subjectId} value={teacherSubject.subjectId}>
+                      {teacherSubject.name} - {teacherSubject.courseName} ({teacherSubject.grade})
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
+
             <div className="space-y-1">
               <Label>Mes</Label>
               <Select value={selectedMonth} onValueChange={setSelectedMonth}>
                 <SelectTrigger className="w-48"><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  {ALL_MONTHS.map(m => (
-                    <SelectItem key={m.month} value={String(m.month)}>{m.name}</SelectItem>
+                  {ALL_MONTHS.map(item => (
+                    <SelectItem key={item.month} value={String(item.month)}>{item.name}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -307,7 +339,7 @@ const PlanillaMensual = () => {
 
           {existingPlanilla && (
             <div className="bg-accent/50 border border-border rounded-lg p-3 text-sm flex items-center justify-between">
-              <span>Esta planilla ya existe — Estado: {statusBadge(existingPlanilla.status)}</span>
+              <span>Esta planilla ya existe - Estado: {statusBadge(existingPlanilla.status)}</span>
               {existingPlanilla.status === 'rechazado' && existingPlanilla.rejectionReason && (
                 <span className="text-destructive text-xs">Motivo: {existingPlanilla.rejectionReason}</span>
               )}
@@ -317,22 +349,28 @@ const PlanillaMensual = () => {
           {subject && (
             <>
               <div className="bg-primary/10 border border-primary/20 rounded-lg p-3 text-sm">
-                <strong>{subject.name}</strong> — {subject.grade} ·
+                <strong>{subject.name}</strong> - {subject.grade}
                 <Badge variant="secondary" className="ml-2">TP Máximo: {totalMaxPoints} pts</Badge>
                 <span className="text-muted-foreground ml-2">(cada tarea = 2 pts)</span>
-                <span className="text-muted-foreground ml-2">· {students.length} alumnos</span>
+                <span className="text-muted-foreground ml-2">- {students.length} alumnos</span>
+                {!courseCoordinatorId && (
+                  <span className="text-destructive ml-2">- Este curso no tiene coordinador asignado</span>
+                )}
               </div>
 
-              {/* Task management - hidden when enviado */}
               {existingPlanilla?.status !== 'enviado' && existingPlanilla?.status !== 'aprobado' && (
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="text-sm font-medium">Tareas del mes:</span>
                   {tasks.map(task => (
                     <Badge key={task.id} variant="outline" className="gap-1 pr-1">
                       {task.name} ({task.maxPoints}pts)
-                      <button onClick={() => startEditTask(task)} className="ml-1 hover:text-primary"><Edit2 className="h-3 w-3" /></button>
+                      <button onClick={() => startEditTask(task)} className="ml-1 hover:text-primary">
+                        <Edit2 className="h-3 w-3" />
+                      </button>
                       {tasks.length > 1 && (
-                        <button onClick={() => removeTask(task.id)} className="hover:text-destructive"><Trash2 className="h-3 w-3" /></button>
+                        <button onClick={() => removeTask(task.id)} className="hover:text-destructive">
+                          <Trash2 className="h-3 w-3" />
+                        </button>
                       )}
                     </Badge>
                   ))}
@@ -351,12 +389,13 @@ const PlanillaMensual = () => {
                 <Card>
                   <CardContent className="p-0 overflow-x-auto">
                     <div className="text-center py-3 border-b border-border px-4">
-                      <h3 className="font-bold text-lg">Planilla de Informe Mensual — {subject.name}</h3>
+                      <h3 className="font-bold text-lg">Planilla de Informe Mensual - {subject.name}</h3>
                       <p className="font-semibold text-primary">{monthName} de 2026</p>
                       <p className="text-sm text-muted-foreground">
-                        <strong>Curso:</strong> {subject.grade} Bachillerato Técnico en Informática
+                        <strong>Curso:</strong> {subject.courseName}
                       </p>
                     </div>
+
                     <table className="w-full text-xs min-w-[600px]">
                       <thead>
                         <tr className="border-b border-border">
@@ -375,12 +414,13 @@ const PlanillaMensual = () => {
                         </tr>
                       </thead>
                       <tbody>
-                        {students.map((student, idx) => {
+                        {students.map((student, index) => {
                           const total = getStudentTotal(student.id);
                           const pct = totalMaxPoints > 0 ? (total / totalMaxPoints) * 100 : 0;
+
                           return (
                             <tr key={student.id} className="border-b border-border hover:bg-muted/20">
-                              <td className="text-center py-1 px-2 border-r border-border text-muted-foreground font-medium">{idx + 1}</td>
+                              <td className="text-center py-1 px-2 border-r border-border text-muted-foreground font-medium">{index + 1}</td>
                               <td className="py-1 px-3 border-r border-border font-medium whitespace-nowrap">
                                 {student.lastName}, {student.firstName}
                               </td>
@@ -412,13 +452,12 @@ const PlanillaMensual = () => {
                 </Card>
               )}
 
-              {/* Actions */}
               {existingPlanilla?.status !== 'aprobado' && existingPlanilla?.status !== 'enviado' && students.length > 0 && (
                 <div className="flex gap-3">
                   <Button variant="outline" onClick={handleSave} disabled={loading || submitting}>
                     <Save className="h-4 w-4 mr-2" />Guardar Borrador
                   </Button>
-                  <Button onClick={handleSubmit} disabled={loading || submitting}>
+                  <Button onClick={handleSubmit} disabled={loading || submitting || !courseCoordinatorId}>
                     <Send className="h-4 w-4 mr-2" />{submitting ? 'Enviando...' : 'Enviar al Coordinador'}
                   </Button>
                 </div>
@@ -432,32 +471,37 @@ const PlanillaMensual = () => {
           {!loading && myPlanillas.length === 0 && (
             <p className="text-center text-muted-foreground py-8">No tenés planillas guardadas aún.</p>
           )}
-          {myPlanillas.map(p => {
-            const mName = ALL_MONTHS.find(m => m.month === p.month)?.name || '';
+          {myPlanillas.map(planilla => {
+            const monthLabel = ALL_MONTHS.find(item => item.month === planilla.month)?.name || '';
+
             return (
-              <Card key={p.id}>
+              <Card key={planilla.id}>
                 <CardContent className="p-4 flex items-center justify-between">
                   <div>
-                    <p className="font-medium">{p.subjectName}</p>
+                    <p className="font-medium">{planilla.subjectName}</p>
                     <p className="text-xs text-muted-foreground">
-                      {p.grade} · {mName} {p.year} · {p.tasks.length} tareas · {p.scores.length} alumnos
+                      {planilla.courseName} - {monthLabel} {planilla.year} - {planilla.tasks.length} tareas - {planilla.scores.length} alumnos
                     </p>
-                    {p.rejectionReason && (
-                      <p className="text-xs text-destructive mt-1">Motivo rechazo: {p.rejectionReason}</p>
+                    {planilla.rejectionReason && (
+                      <p className="text-xs text-destructive mt-1">Motivo rechazo: {planilla.rejectionReason}</p>
                     )}
                   </div>
                   <div className="flex items-center gap-2">
-                    {statusBadge(p.status)}
-                    {(p.status === 'borrador' || p.status === 'rechazado') && (
+                    {statusBadge(planilla.status)}
+                    {(planilla.status === 'borrador' || planilla.status === 'rechazado') && (
                       <>
-                        <Button variant="outline" size="sm" onClick={() => {
-                          setSelectedSubjectId(p.subjectId);
-                          setSelectedMonth(String(p.month));
-                          setActiveTab('crear');
-                        }}>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setSelectedSubjectId(planilla.subjectId);
+                            setSelectedMonth(String(planilla.month));
+                            setActiveTab('crear');
+                          }}
+                        >
                           <Edit2 className="h-3 w-3 mr-1" /> Editar
                         </Button>
-                        <Button variant="ghost" size="icon" onClick={() => handleDeletePlanilla(p.id)}>
+                        <Button variant="ghost" size="icon" onClick={() => handleDeletePlanilla(planilla.id)}>
                           <Trash2 className="h-4 w-4 text-destructive" />
                         </Button>
                       </>
@@ -470,7 +514,6 @@ const PlanillaMensual = () => {
         </TabsContent>
       </Tabs>
 
-      {/* Edit task dialog */}
       <Dialog open={!!editingTask} onOpenChange={(open) => !open && setEditingTask(null)}>
         <DialogContent className="sm:max-w-[400px]">
           <DialogHeader>

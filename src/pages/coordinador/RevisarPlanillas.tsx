@@ -15,7 +15,7 @@ import { useAccountsStore } from '@/lib/accounts-store';
 
 const RevisarPlanillas = () => {
   const { toast } = useToast();
-  const { user } = useAppStore();
+  const { user, currentRole } = useAppStore();
   const { planillas, loading, fetchPlanillas, updatePlanilla } = usePlanillasStore();
   const { accounts, fetchAccounts } = useAccountsStore();
 
@@ -24,22 +24,26 @@ const RevisarPlanillas = () => {
   const [rejectionReason, setRejectionReason] = useState('');
 
   useEffect(() => {
-    fetchPlanillas();
-    fetchAccounts();
+    fetchPlanillas(true);
+    fetchAccounts(true);
   }, []);
 
-  const pendientes = planillas.filter(p => p.status === 'enviado');
-  const aprobadas = planillas.filter(p => p.status === 'aprobado');
-  const rechazadas = planillas.filter(p => p.status === 'rechazado');
+  const visiblePlanillas = currentRole === 'director'
+    ? planillas
+    : planillas.filter(planilla => planilla.coordinatorId === user?.id);
 
-  const handleApprove = async (p: Planilla) => {
+  const pendientes = visiblePlanillas.filter(planilla => planilla.status === 'enviado');
+  const aprobadas = visiblePlanillas.filter(planilla => planilla.status === 'aprobado');
+  const rechazadas = visiblePlanillas.filter(planilla => planilla.status === 'rechazado');
+
+  const handleApprove = async (planilla: Planilla) => {
     try {
-      await updatePlanilla(p.id, {
+      await updatePlanilla(planilla.id, {
         status: 'aprobado',
         approvedDate: new Date().toISOString(),
         approvedBy: user?.name || 'Coordinador',
       });
-      toast({ title: 'Planilla aprobada', description: `${p.subjectName} - ahora es visible para los alumnos` });
+      toast({ title: 'Planilla aprobada', description: `${planilla.subjectName} - ahora es visible para los alumnos` });
     } catch {
       toast({ title: 'Error', variant: 'destructive' });
     }
@@ -47,12 +51,13 @@ const RevisarPlanillas = () => {
 
   const handleReject = async () => {
     if (!rejectPlanilla || !rejectionReason.trim()) return;
+
     try {
       await updatePlanilla(rejectPlanilla.id, {
         status: 'rechazado',
         rejectionReason: rejectionReason.trim(),
       });
-      toast({ title: 'Planilla rechazada', description: 'El profesor será notificado del motivo' });
+      toast({ title: 'Planilla rechazada', description: 'El profesor verá el motivo del rechazo.' });
       setRejectPlanilla(null);
       setRejectionReason('');
     } catch {
@@ -61,36 +66,37 @@ const RevisarPlanillas = () => {
   };
 
   const getStudentName = (id: string) => {
-    const a = accounts.find(acc => acc.id === id);
-    return a ? `${a.lastName}, ${a.firstName}` : id;
+    const account = accounts.find(acc => acc.id === id);
+    return account ? `${account.lastName}, ${account.firstName}` : id;
   };
 
-  const renderPlanillaCard = (p: Planilla, showActions: boolean) => {
-    const mName = ALL_MONTHS.find(m => m.month === p.month)?.name || '';
+  const renderPlanillaCard = (planilla: Planilla, showActions: boolean) => {
+    const monthLabel = ALL_MONTHS.find(month => month.month === planilla.month)?.name || '';
+
     return (
-      <Card key={p.id}>
+      <Card key={planilla.id}>
         <CardContent className="p-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="font-semibold">{p.subjectName}</p>
+              <p className="font-semibold">{planilla.subjectName}</p>
               <p className="text-xs text-muted-foreground">
-                {p.grade} · {mName} {p.year} · Prof. {p.teacherName}
+                {planilla.courseName} - {monthLabel} {planilla.year} - Prof. {planilla.teacherName}
               </p>
               <p className="text-xs text-muted-foreground">
-                {p.tasks.length} tareas · {p.scores.length} alumnos
-                {p.submittedDate && ` · Enviada: ${new Date(p.submittedDate).toLocaleDateString('es-PY')}`}
+                {planilla.tasks.length} tareas - {planilla.scores.length} alumnos
+                {planilla.submittedDate && ` - Enviada: ${new Date(planilla.submittedDate).toLocaleDateString('es-PY')}`}
               </p>
             </div>
             <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" onClick={() => setViewPlanilla(p)}>
+              <Button variant="outline" size="sm" onClick={() => setViewPlanilla(planilla)}>
                 <Eye className="h-4 w-4 mr-1" /> Ver
               </Button>
               {showActions && (
                 <>
-                  <Button size="sm" onClick={() => handleApprove(p)} className="bg-green-600 hover:bg-green-700">
+                  <Button size="sm" onClick={() => handleApprove(planilla)} className="bg-green-600 hover:bg-green-700">
                     <CheckCircle className="h-4 w-4 mr-1" /> Aprobar
                   </Button>
-                  <Button variant="destructive" size="sm" onClick={() => { setRejectPlanilla(p); setRejectionReason(''); }}>
+                  <Button variant="destructive" size="sm" onClick={() => { setRejectPlanilla(planilla); setRejectionReason(''); }}>
                     <XCircle className="h-4 w-4 mr-1" /> Rechazar
                   </Button>
                 </>
@@ -108,7 +114,11 @@ const RevisarPlanillas = () => {
         <Layers className="h-6 w-6 text-primary" />
         <div>
           <h2 className="text-2xl font-bold">Revisar Planillas</h2>
-          <p className="text-sm text-muted-foreground">Aprobar o rechazar planillas enviadas por los profesores</p>
+          <p className="text-sm text-muted-foreground">
+            {currentRole === 'director'
+              ? 'Ves todas las planillas del sistema.'
+              : 'Solo ves las planillas de los cursos que coordinás.'}
+          </p>
         </div>
       </div>
 
@@ -129,32 +139,33 @@ const RevisarPlanillas = () => {
 
         <TabsContent value="pendientes" className="space-y-3">
           {pendientes.length === 0 && <p className="text-center text-muted-foreground py-8">No hay planillas pendientes de revisión.</p>}
-          {pendientes.map(p => renderPlanillaCard(p, true))}
+          {pendientes.map(planilla => renderPlanillaCard(planilla, true))}
         </TabsContent>
 
         <TabsContent value="aprobadas" className="space-y-3">
           {aprobadas.length === 0 && <p className="text-center text-muted-foreground py-8">No hay planillas aprobadas.</p>}
-          {aprobadas.map(p => renderPlanillaCard(p, false))}
+          {aprobadas.map(planilla => renderPlanillaCard(planilla, false))}
         </TabsContent>
 
         <TabsContent value="rechazadas" className="space-y-3">
           {rechazadas.length === 0 && <p className="text-center text-muted-foreground py-8">No hay planillas rechazadas.</p>}
-          {rechazadas.map(p => (
-            <div key={p.id}>
-              {renderPlanillaCard(p, false)}
-              {p.rejectionReason && (
-                <p className="text-xs text-destructive ml-4 mt-1">Motivo: {p.rejectionReason}</p>
+          {rechazadas.map(planilla => (
+            <div key={planilla.id}>
+              {renderPlanillaCard(planilla, false)}
+              {planilla.rejectionReason && (
+                <p className="text-xs text-destructive ml-4 mt-1">Motivo: {planilla.rejectionReason}</p>
               )}
             </div>
           ))}
         </TabsContent>
       </Tabs>
 
-      {/* View Planilla Dialog */}
-      <Dialog open={!!viewPlanilla} onOpenChange={(o) => !o && setViewPlanilla(null)}>
+      <Dialog open={!!viewPlanilla} onOpenChange={(open) => !open && setViewPlanilla(null)}>
         <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>{viewPlanilla?.subjectName} — {ALL_MONTHS.find(m => m.month === viewPlanilla?.month)?.name} {viewPlanilla?.year}</DialogTitle>
+            <DialogTitle>
+              {viewPlanilla?.subjectName} - {ALL_MONTHS.find(month => month.month === viewPlanilla?.month)?.name} {viewPlanilla?.year}
+            </DialogTitle>
             <p className="text-sm text-muted-foreground">Detalle de puntajes por alumno</p>
           </DialogHeader>
           {viewPlanilla && (
@@ -164,25 +175,25 @@ const RevisarPlanillas = () => {
                   <tr className="border-b bg-muted/50">
                     <th className="py-2 px-2 border-r text-center">N°</th>
                     <th className="py-2 px-3 border-r text-left min-w-[180px]">Alumno</th>
-                    {viewPlanilla.tasks.map(t => (
-                      <th key={t.id} className="py-2 px-1 border-r text-center min-w-[50px]">
-                        <div className="text-[10px]">{t.name}</div>
-                        <div className="text-[9px] text-muted-foreground">({t.maxPoints}pts)</div>
+                    {viewPlanilla.tasks.map(task => (
+                      <th key={task.id} className="py-2 px-1 border-r text-center min-w-[50px]">
+                        <div className="text-[10px]">{task.name}</div>
+                        <div className="text-[9px] text-muted-foreground">({task.maxPoints}pts)</div>
                       </th>
                     ))}
                     <th className="py-2 px-2 text-center bg-primary/10">TOTAL</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {viewPlanilla.scores.map((entry, idx) => {
-                    const total = viewPlanilla.tasks.reduce((s, t) => s + (entry.scores[t.id] || 0), 0);
+                  {viewPlanilla.scores.map((entry, index) => {
+                    const total = viewPlanilla.tasks.reduce((sum, task) => sum + (entry.scores[task.id] || 0), 0);
                     return (
                       <tr key={entry.studentId} className="border-b">
-                        <td className="py-1 px-2 border-r text-center">{idx + 1}</td>
+                        <td className="py-1 px-2 border-r text-center">{index + 1}</td>
                         <td className="py-1 px-3 border-r">{getStudentName(entry.studentId)}</td>
-                        {viewPlanilla.tasks.map(t => (
-                          <td key={t.id} className="py-1 px-1 border-r text-center font-medium">
-                            {entry.scores[t.id] || 0}
+                        {viewPlanilla.tasks.map(task => (
+                          <td key={task.id} className="py-1 px-1 border-r text-center font-medium">
+                            {entry.scores[task.id] || 0}
                           </td>
                         ))}
                         <td className="py-1 px-2 text-center font-bold">{total}</td>
@@ -196,15 +207,16 @@ const RevisarPlanillas = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Reject Dialog */}
-      <Dialog open={!!rejectPlanilla} onOpenChange={(o) => !o && setRejectPlanilla(null)}>
+      <Dialog open={!!rejectPlanilla} onOpenChange={(open) => !open && setRejectPlanilla(null)}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Rechazar Planilla</DialogTitle>
             <p className="text-sm text-muted-foreground">Indicá el motivo del rechazo</p>
           </DialogHeader>
           <div className="space-y-3">
-            <p className="text-sm">Planilla: <strong>{rejectPlanilla?.subjectName}</strong> — {rejectPlanilla?.teacherName}</p>
+            <p className="text-sm">
+              Planilla: <strong>{rejectPlanilla?.subjectName}</strong> - {rejectPlanilla?.teacherName}
+            </p>
             <div className="space-y-1">
               <Label>Motivo del rechazo</Label>
               <Input value={rejectionReason} onChange={(e) => setRejectionReason(e.target.value)} placeholder="Ej: Faltan puntajes de algunos alumnos" />

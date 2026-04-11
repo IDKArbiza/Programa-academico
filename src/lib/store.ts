@@ -1,6 +1,8 @@
 import { create } from 'zustand';
 import { UserRole } from './types';
-import { useAccountsStore, Account } from './accounts-store';
+import { useAccountsStore } from './accounts-store';
+import { useCoursesStore } from './courses-store';
+import { usePlanillasStore } from './planillas-store';
 
 export interface User {
   id: string;
@@ -29,7 +31,12 @@ export const useAppStore = create<AppState>((set, get) => ({
   user: null,
   isLoading: false,
   setRole: (role, userId) => set({ currentRole: role, currentUserId: userId || null }),
-  logout: () => set({ currentRole: null, currentUserId: null, user: null }),
+  logout: () => {
+    useAccountsStore.getState().reset();
+    useCoursesStore.getState().reset();
+    usePlanillasStore.getState().reset();
+    set({ currentRole: null, currentUserId: null, user: null });
+  },
   setUser: (user) => set({ user }),
   setLoading: (loading) => set({ isLoading: loading }),
   login: async (email: string, password: string) => {

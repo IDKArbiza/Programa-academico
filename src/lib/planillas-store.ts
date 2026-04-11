@@ -17,8 +17,11 @@ export interface Planilla {
   id: string;
   subjectId: string;
   subjectName: string;
+  courseId: string;
+  courseName: string;
   teacherId: string;
   teacherName: string;
+  coordinatorId?: string;
   grade: string;
   month: number;
   year: number;
@@ -38,10 +41,11 @@ interface PlanillasState {
   planillas: Planilla[];
   loading: boolean;
   loaded: boolean;
-  fetchPlanillas: () => Promise<void>;
+  fetchPlanillas: (force?: boolean) => Promise<void>;
   savePlanilla: (planilla: Omit<Planilla, 'id'>) => Promise<string>;
   updatePlanilla: (id: string, data: Partial<Planilla>) => Promise<void>;
   deletePlanilla: (id: string) => Promise<void>;
+  reset: () => void;
   getPlanillasByTeacher: (teacherId: string) => Planilla[];
   getPlanillasByGrade: (grade: string) => Planilla[];
   getPlanillasByStatus: (status: Planilla['status']) => Planilla[];
@@ -60,8 +64,8 @@ export const usePlanillasStore = create<PlanillasState>((set, get) => ({
   loading: false,
   loaded: false,
 
-  fetchPlanillas: async () => {
-    if (get().loaded) return;
+  fetchPlanillas: async (force = false) => {
+    if (get().loaded && !force) return;
     set({ loading: true });
     try {
       const snapshot = await getDocs(collection(db, COLLECTION));
@@ -125,6 +129,8 @@ export const usePlanillasStore = create<PlanillasState>((set, get) => ({
       throw error;
     }
   },
+
+  reset: () => set({ planillas: [], loading: false, loaded: false }),
 
   getPlanillasByTeacher: (teacherId) => {
     return get().planillas.filter(p => p.teacherId === teacherId);

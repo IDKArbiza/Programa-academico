@@ -15,7 +15,7 @@ const GestionCuentas = () => {
   const { toast } = useToast();
   const { accounts, loading, fetchAccounts, createAccount, updateAccount, deleteAccount: removeAccount } = useAccountsStore();
 
-  useEffect(() => { fetchAccounts(); }, []);
+  useEffect(() => { fetchAccounts(true); }, []);
 
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [newAccount, setNewAccount] = useState({
@@ -24,6 +24,10 @@ const GestionCuentas = () => {
 
   const handleCreateAccount = async () => {
     if (!newAccount.firstName || !newAccount.lastName || !newAccount.ci || !newAccount.role) return;
+    if (newAccount.role === 'alumno' && !newAccount.grade) {
+      toast({ title: 'Error', description: 'Debés seleccionar el curso del alumno.', variant: 'destructive' });
+      return;
+    }
     const email = `${newAccount.ci}@cpcc.com`;
     
     // Check if CI already exists
@@ -212,7 +216,7 @@ const GestionCuentas = () => {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowCreateDialog(false)}>Cancelar</Button>
-            <Button onClick={handleCreateAccount} disabled={!newAccount.firstName || !newAccount.lastName || !newAccount.ci || !newAccount.role}>
+            <Button onClick={handleCreateAccount} disabled={!newAccount.firstName || !newAccount.lastName || !newAccount.ci || !newAccount.role || (newAccount.role === 'alumno' && !newAccount.grade)}>
               Crear Cuenta
             </Button>
           </DialogFooter>
