@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { UserPlus, Users, BookOpen, GraduationCap, Trash2 } from 'lucide-react';
+import { UserPlus, Users, BookOpen, GraduationCap, Trash2, Shield } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAccountsStore, Account } from '@/lib/accounts-store';
 
@@ -82,6 +82,7 @@ const GestionCuentas = () => {
 
   const roleLabel = (role: string) => {
     switch (role) {
+      case 'administrador': return 'Administrador';
       case 'coordinador': return 'Coordinador';
       case 'docente': return 'Profesor';
       case 'alumno': return 'Alumno';
@@ -91,6 +92,7 @@ const GestionCuentas = () => {
 
   const roleIcon = (role: string) => {
     switch (role) {
+      case 'administrador': return <Shield className="h-4 w-4" />;
       case 'coordinador': return <Users className="h-4 w-4" />;
       case 'docente': return <BookOpen className="h-4 w-4" />;
       case 'alumno': return <GraduationCap className="h-4 w-4" />;
@@ -107,7 +109,7 @@ const GestionCuentas = () => {
           <UserPlus className="h-6 w-6 text-primary" />
           <div>
             <h2 className="text-2xl font-bold">Gestión de Cuentas</h2>
-            <p className="text-sm text-muted-foreground">Crear cuentas de Coordinadores, Profesores y Alumnos</p>
+            <p className="text-sm text-muted-foreground">Administración de usuarios: Administradores, Coordinadores, Profesores y Alumnos</p>
           </div>
         </div>
         <Button onClick={() => setShowCreateDialog(true)}>
@@ -128,9 +130,12 @@ const GestionCuentas = () => {
           <TabsTrigger value="coordinador">
             <Users className="h-4 w-4 mr-1" /> Coordinadores ({filterByRole('coordinador').length})
           </TabsTrigger>
+          <TabsTrigger value="administrador">
+            <Shield className="h-4 w-4 mr-1" /> Administradores ({filterByRole('administrador').length})
+          </TabsTrigger>
         </TabsList>
 
-        {['alumno', 'docente', 'coordinador'].map(role => (
+        {['alumno', 'docente', 'coordinador', 'administrador'].map(role => (
           <TabsContent key={role} value={role} className="space-y-3">
             {filterByRole(role).map(account => (
               <Card key={account.id}>
@@ -199,6 +204,7 @@ const GestionCuentas = () => {
                   <SelectItem value="alumno">Alumno</SelectItem>
                   <SelectItem value="docente">Profesor</SelectItem>
                   <SelectItem value="coordinador">Coordinador</SelectItem>
+                  <SelectItem value="administrador">Administrador</SelectItem>
                 </SelectContent>
               </Select>
             </div>

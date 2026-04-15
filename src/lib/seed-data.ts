@@ -8,7 +8,7 @@ export const seedInitialData = async () => {
       {
         name: 'Carlos Rodríguez',
         email: '1234567@cpcc.com',
-        role: 'director',
+        role: 'administrador',
         avatar: ''
       },
       {

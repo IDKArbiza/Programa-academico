@@ -288,7 +288,7 @@ const PlanillaMensual = () => {
     }
   };
 
-  if (teacherSubjects.length === 0 && (currentRole === 'docente' || currentRole === 'coordinador' || currentRole === 'director')) {
+  if (teacherSubjects.length === 0 && (currentRole === 'docente' || currentRole === 'coordinador' || currentRole === 'administrador')) {
     return (
       <div className="p-8 text-center text-muted-foreground">
         <Layers className="h-12 w-12 mx-auto mb-4 opacity-50" />

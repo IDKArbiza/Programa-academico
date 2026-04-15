@@ -20,13 +20,13 @@ import CoordinadorDashboard from "./pages/coordinador/CoordinadorDashboard";
 import GestionCursos from "./pages/coordinador/GestionCursos";
 import RevisarPlanillas from "./pages/coordinador/RevisarPlanillas";
 
-import DirectorDashboard from "./pages/director/DirectorDashboard";
-import GestionCuentas from "./pages/director/GestionCuentas";
+import AdminDashboard from "./pages/administrador/AdminDashboard";
+import GestionCuentas from "./pages/administrador/GestionCuentas";
 
 const queryClient = new QueryClient();
 
 const roleHomePath: Record<UserRole, string> = {
-  director: "/director",
+  administrador: "/administrador",
   coordinador: "/coordinador",
   docente: "/docente",
   alumno: "/alumno",
@@ -65,11 +65,14 @@ const ProtectedRoutes = () => {
         <Route path="/coordinador/cursos" element={<GestionCursos />} />
 
         {/* Administrador - hereda todo + gestión cuentas */}
-        <Route path="/director" element={<DirectorDashboard />} />
-        <Route path="/director/planillas" element={<PlanillaMensual />} />
-        <Route path="/director/revisar" element={<RevisarPlanillas />} />
-        <Route path="/director/cursos" element={<GestionCursos />} />
-        <Route path="/director/cuentas" element={<GestionCuentas />} />
+        <Route path="/administrador" element={<AdminDashboard />} />
+        <Route path="/administrador/planillas" element={<PlanillaMensual />} />
+        <Route path="/administrador/revisar" element={<RevisarPlanillas />} />
+        <Route path="/administrador/cursos" element={<GestionCursos />} />
+        <Route path="/administrador/cuentas" element={<GestionCuentas />} />
+
+        {/* Redirección legado */}
+        <Route path="/director/*" element={<Navigate to="/administrador" replace />} />
 
         <Route path="*" element={<NotFound />} />
       </Routes>

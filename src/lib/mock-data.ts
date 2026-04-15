@@ -118,7 +118,7 @@ export const mockGrades: Grade[] = [
 export const mockMonthlySheets: MonthlyGradeSheet[] = [
   {
     id: 'ms1', subjectId: 'sub14', teacherId: 't1', grade: '1° Año', month: 3, year: 2026, etapa: 1, status: 'aprobado',
-    submittedDate: '2026-03-28', approvedBy: 'Director',
+    submittedDate: '2026-03-28', approvedBy: 'Administrador',
     entries: [
       { studentId: 's1', grades: [], finalGrade: 10 },
       { studentId: 's2', grades: [], finalGrade: 12 },

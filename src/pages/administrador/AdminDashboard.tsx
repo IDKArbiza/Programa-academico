@@ -1,9 +1,44 @@
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Layers, FolderOpen, UserPlus, Shield, ClipboardCheck } from 'lucide-react';
+import { Layers, FolderOpen, UserPlus, Shield, ClipboardCheck, Sparkles, Loader2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { useState } from 'react';
+import { collection, query, where, getDocs, updateDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
+import { useToast } from '@/hooks/use-toast';
 
-const DirectorDashboard = () => {
+const AdminDashboard = () => {
+  const { toast } = useToast();
+  const [isMigrating, setIsMigrating] = useState(false);
+
+  const handleMigrateRoles = async () => {
+    setIsMigrating(true);
+    try {
+      const usersRef = collection(db, 'users');
+      const q = query(usersRef, where('role', '==', 'director'));
+      const snapshot = await getDocs(q);
+      
+      if (snapshot.empty) {
+        toast({ title: 'Migración', description: 'No se encontraron cuentas con el rol antiguo.' });
+        setIsMigrating(false);
+        return;
+      }
+
+      const updates = snapshot.docs.map(doc => updateDoc(doc.ref, { role: 'administrador' }));
+      await Promise.all(updates);
+      
+      toast({ 
+        title: 'Migración completada', 
+        description: `Se actualizaron ${snapshot.size} cuentas al nuevo rol 'administrador'.` 
+      });
+    } catch (error) {
+      console.error('Migration error:', error);
+      toast({ title: 'Error', description: 'No se pudo completar la migración.', variant: 'destructive' });
+    } finally {
+      setIsMigrating(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-3">
@@ -26,7 +61,7 @@ const DirectorDashboard = () => {
             <p className="text-sm text-muted-foreground mb-4">
               Crear, editar, eliminar y enviar planillas de puntaje mensual.
             </p>
-            <Link to="/director/planillas">
+            <Link to="/administrador/planillas">
               <Button className="w-full">Ir a Planillas</Button>
             </Link>
           </CardContent>
@@ -43,7 +78,7 @@ const DirectorDashboard = () => {
             <p className="text-sm text-muted-foreground mb-4">
               Aprobar o rechazar planillas enviadas por los profesores.
             </p>
-            <Link to="/director/revisar">
+            <Link to="/administrador/revisar">
               <Button className="w-full">Revisar Planillas</Button>
             </Link>
           </CardContent>
@@ -60,7 +95,7 @@ const DirectorDashboard = () => {
             <p className="text-sm text-muted-foreground mb-4">
               Crear cursos y asignar cuentas a los cursos.
             </p>
-            <Link to="/director/cursos">
+            <Link to="/administrador/cursos">
               <Button className="w-full">Gestionar Cursos</Button>
             </Link>
           </CardContent>
@@ -77,7 +112,7 @@ const DirectorDashboard = () => {
             <p className="text-sm text-muted-foreground mb-4">
               Crear cuentas de Coordinadores, Profesores y Alumnos.
             </p>
-            <Link to="/director/cuentas">
+            <Link to="/administrador/cuentas">
               <Button className="w-full">Gestionar Cuentas</Button>
             </Link>
           </CardContent>
@@ -87,4 +122,4 @@ const DirectorDashboard = () => {
   );
 };
 
-export default DirectorDashboard;
+export default AdminDashboard;

@@ -194,7 +194,7 @@ export const useAccountsStore = create<AccountsState>((set, get) => ({
   
   getStudents: () => get().accounts.filter(a => a.role === 'alumno'),
   
-  getTeachers: () => get().accounts.filter(a => a.role === 'docente' || a.role === 'coordinador' || a.role === 'director'),
+  getTeachers: () => get().accounts.filter(a => a.role === 'docente' || a.role === 'coordinador' || a.role === 'administrador'),
   
   getStudentsByGrade: (grade) => get().accounts.filter(a => a.role === 'alumno' && a.grade === grade),
 

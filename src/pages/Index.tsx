@@ -6,7 +6,8 @@ const Index = () => {
   const currentRole = useAppStore((s) => s.currentRole);
 
   if (currentRole) {
-    return <Navigate to={`/${currentRole}`} replace />;
+    const redirectPath = currentRole === 'director' ? '/administrador' : `/${currentRole}`;
+    return <Navigate to={redirectPath} replace />;
   }
 
   return <Login />;

@@ -15,12 +15,12 @@ interface NavItem {
 }
 
 const navItems: Record<UserRole, NavItem[]> = {
-  director: [
-    { label: 'Inicio', path: '/director', icon: <Home className="h-4 w-4" /> },
-    { label: 'Planillas Mensuales', path: '/director/planillas', icon: <Layers className="h-4 w-4" /> },
-    { label: 'Revisar Planillas', path: '/director/revisar', icon: <ClipboardCheck className="h-4 w-4" /> },
-    { label: 'Gestión de Cursos', path: '/director/cursos', icon: <FolderOpen className="h-4 w-4" /> },
-    { label: 'Gestión de Cuentas', path: '/director/cuentas', icon: <UserPlus className="h-4 w-4" /> },
+  administrador: [
+    { label: 'Inicio', path: '/administrador', icon: <Home className="h-4 w-4" /> },
+    { label: 'Planillas Mensuales', path: '/administrador/planillas', icon: <Layers className="h-4 w-4" /> },
+    { label: 'Revisar Planillas', path: '/administrador/revisar', icon: <ClipboardCheck className="h-4 w-4" /> },
+    { label: 'Gestión de Cursos', path: '/administrador/cursos', icon: <FolderOpen className="h-4 w-4" /> },
+    { label: 'Gestión de Cuentas', path: '/administrador/cuentas', icon: <UserPlus className="h-4 w-4" /> },
   ],
   coordinador: [
     { label: 'Inicio', path: '/coordinador', icon: <Home className="h-4 w-4" /> },
@@ -39,14 +39,14 @@ const navItems: Record<UserRole, NavItem[]> = {
 };
 
 const roleLabels: Record<UserRole, string> = {
-  director: 'Administrador',
+  administrador: 'Administrador',
   coordinador: 'Coordinador',
   docente: 'Profesor',
   alumno: 'Alumno',
 };
 
 const roleIcons: Record<UserRole, React.ReactNode> = {
-  director: <Shield className="h-5 w-5" />,
+  administrador: <Shield className="h-5 w-5" />,
   coordinador: <Users className="h-5 w-5" />,
   docente: <BookOpen className="h-5 w-5" />,
   alumno: <GraduationCap className="h-5 w-5" />,

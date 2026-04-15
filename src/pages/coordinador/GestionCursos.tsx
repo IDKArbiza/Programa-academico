@@ -33,7 +33,7 @@ const GestionCursos = () => {
   const [selectedSubjectName, setSelectedSubjectName] = useState('');
 
   const students = accounts.filter(a => a.role === 'alumno' && a.status === 'activo');
-  const teachers = accounts.filter(a => (a.role === 'docente' || a.role === 'coordinador' || a.role === 'director') && a.status === 'activo');
+  const teachers = accounts.filter(a => (a.role === 'docente' || a.role === 'coordinador' || a.role === 'administrador') && a.status === 'activo');
   const coordinators = accounts.filter(a => a.role === 'coordinador' && a.status === 'activo');
 
   const handleCreateCourse = async () => {

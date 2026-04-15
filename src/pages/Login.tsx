@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useAppStore } from '@/lib/store';
 import { useAccountsStore } from '@/lib/accounts-store';
-import { LogIn, Loader2, IdCard, Shield, Users, BookOpen, GraduationCap } from 'lucide-react';
+import { LogIn, Loader2, IdCard, Shield, Users, BookOpen, GraduationCap, Eye, EyeOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -13,6 +13,7 @@ const Login = () => {
   const { fetchAccounts } = useAccountsStore();
   const [cedula, setCedula] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
 
   const handleLogin = async () => {
@@ -73,9 +74,29 @@ const Login = () => {
               />
               <p className="text-xs text-muted-foreground mt-1">Formato: número_cédula@cpcc.com</p>
             </div>
-            <div>
+            <div className="space-y-1">
               <Label htmlFor="password">Contraseña</Label>
-              <Input id="password" type="password" placeholder="cedulacpcc" value={password} onChange={(e) => setPassword(e.target.value)} className="mt-1" />
+              <div className="relative">
+                <Input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  placeholder="cedulacpcc"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="mt-1 pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground focus:outline-none"
+                >
+                  {showPassword ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
+                </button>
+              </div>
             </div>
             {error && (
               <p className="text-sm text-destructive">{error}</p>

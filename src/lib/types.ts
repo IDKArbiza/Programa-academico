@@ -1,4 +1,4 @@
-export type UserRole = 'director' | 'coordinador' | 'docente' | 'alumno';
+export type UserRole = 'administrador' | 'coordinador' | 'docente' | 'alumno';
 
 // Sistema educativo CPCC: 2 etapas por año
 export type PeriodType = 'etapa';
@@ -187,7 +187,7 @@ export interface BoletaNotas {
   conducta: 1 | 2 | 3 | 4 | 5;
   observaciones: string;
   generatedDate: string;
-  directorSignature: string;
+  adminSignature: string;
   teacherSignature: string;
 }
 
@@ -200,7 +200,7 @@ export interface Colegio {
   department: string;
   phone: string;
   email: string;
-  director: string;
+  administrador: string;
   tipo: 'publico' | 'privado' | 'subvencionado';
   niveles: ('inicial' | 'primario' | 'secundario')[];
   turno: ('mañana' | 'tarde')[];

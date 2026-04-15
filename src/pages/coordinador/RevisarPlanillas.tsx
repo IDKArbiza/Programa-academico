@@ -30,7 +30,7 @@ const RevisarPlanillas = () => {
 
   const CURRENT_YEAR = new Date().getFullYear();
 
-  const visiblePlanillas = (currentRole === 'director'
+  const visiblePlanillas = (currentRole === 'administrador'
     ? planillas
     : planillas.filter(planilla => planilla.coordinatorId === user?.id)
   ).filter(p => p.year === CURRENT_YEAR);
@@ -118,7 +118,7 @@ const RevisarPlanillas = () => {
         <div>
           <h2 className="text-2xl font-bold">Revisar Planillas</h2>
           <p className="text-sm text-muted-foreground">
-            {currentRole === 'director'
+            {currentRole === 'administrador'
               ? `Año ${CURRENT_YEAR} — Ves todas las planillas del sistema.`
               : `Año ${CURRENT_YEAR} — Solo ves las planillas de los cursos que coordinás.`}
           </p>
