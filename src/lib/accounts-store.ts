@@ -190,7 +190,7 @@ export const useAccountsStore = create<AccountsState>((set, get) => ({
 
   getByRole: (role) => get().accounts.filter(a => a.role === role),
   
-  getByEmail: (email) => get().accounts.find(a => a.email === email),
+  getByEmail: (email) => get().accounts.find(a => a.email.toLowerCase() === email.toLowerCase()),
   
   getStudents: () => get().accounts.filter(a => a.role === 'alumno'),
   

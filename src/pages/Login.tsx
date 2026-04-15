@@ -27,7 +27,7 @@ const Login = () => {
       return;
     }
 
-    const cedulaNumber = cedula.replace('@cpcc.com', '');
+    const cedulaNumber = cedula.replace('@cpcc.com', '').replace(/\./g, '');
     const expectedPassword = `${cedulaNumber}cpcc`;
 
     if (password !== expectedPassword) {

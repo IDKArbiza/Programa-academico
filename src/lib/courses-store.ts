@@ -1,6 +1,7 @@
 import { create } from 'zustand';
-import { collection, doc, addDoc, getDocs, updateDoc, deleteDoc, Timestamp } from 'firebase/firestore';
+import { collection, doc, addDoc, getDocs, updateDoc, deleteDoc, Timestamp, query, where, writeBatch } from 'firebase/firestore';
 import { db } from './firebase';
+import { usePlanillasStore } from './planillas-store';
 
 export interface TeacherAssignment {
   id: string;
@@ -104,10 +105,22 @@ export const useCoursesStore = create<CoursesState>((set, get) => ({
 
   deleteCourse: async (id) => {
     try {
-      await deleteDoc(doc(db, COLLECTION, id));
+      const batch = writeBatch(db);
+      const planillasSnapshot = await getDocs(
+        query(collection(db, 'planillas'), where('courseId', '==', id))
+      );
+
+      planillasSnapshot.docs.forEach((planillaDoc) => {
+        batch.delete(planillaDoc.ref);
+      });
+
+      batch.delete(doc(db, COLLECTION, id));
+      await batch.commit();
+
       set(state => ({
         courses: state.courses.filter(c => c.id !== id),
       }));
+      await usePlanillasStore.getState().fetchPlanillas(true);
     } catch (error) {
       console.error('Error deleting course:', error);
       throw error;

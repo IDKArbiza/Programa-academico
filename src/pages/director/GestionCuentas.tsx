@@ -30,8 +30,10 @@ const GestionCuentas = () => {
     }
     const email = `${newAccount.ci}@cpcc.com`;
     
-    // Check if CI already exists
-    const existing = accounts.find(a => a.ci === newAccount.ci);
+    // Check if CI already exists (normalizing dots)
+    const normalizedNewCI = newAccount.ci.replace(/\./g, '');
+    const existing = accounts.find(a => a.ci.replace(/\./g, '') === normalizedNewCI);
+    
     if (existing) {
       toast({ title: 'Error', description: 'Ya existe una cuenta con esa cédula', variant: 'destructive' });
       return;

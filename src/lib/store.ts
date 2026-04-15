@@ -49,8 +49,8 @@ export const useAppStore = create<AppState>((set) => ({
       }
 
       const account = useAccountsStore.getState().getByEmail(email);
-      // Password is validated against the account's CI (national ID number)
-      if (account && account.status === 'activo' && account.ci === password) {
+      // Password is validated against the account's CI (ignoring dots) + 'cpcc' suffix
+      if (account && account.status === 'activo' && `${account.ci.replace(/\./g, '')}cpcc` === password) {
         const user: User = {
           id: account.id,
           name: `${account.firstName} ${account.lastName}`,

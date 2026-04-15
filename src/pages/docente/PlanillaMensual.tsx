@@ -257,8 +257,12 @@ const PlanillaMensual = () => {
         scoresMap[score.studentId] = score.scores;
       });
       setScores(scoresMap);
+    } else if (subject) {
+      // Reset to default tasks and empty scores if no draft exists for this month/subject
+      setTasks(generateDefaultTasks(subject.hoursPerWeek || 4));
+      setScores({});
     }
-  }, [existingPlanilla?.id]);
+  }, [existingPlanilla?.id, selectedSubjectId, selectedMonth]);
 
   const handleDeletePlanilla = async (id: string) => {
     try {
