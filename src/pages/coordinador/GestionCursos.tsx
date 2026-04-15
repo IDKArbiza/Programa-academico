@@ -43,7 +43,7 @@ const GestionCursos = () => {
       await createCourse({
         name: newCourseName.trim(),
         grade: newCourseGrade,
-        year: 2026,
+        year: new Date().getFullYear(),
         students: [],
         teachers: [],
         subjects: [],
@@ -200,7 +200,22 @@ const GestionCursos = () => {
   };
 
   const availableStudents = selectedCourse
-    ? students.filter(student => !selectedCourse.students.includes(student.id))
+    ? students.filter(student => {
+        // 1. El grado del alumno debe coincidir con el del curso
+        const matchesGrade = student.grade === selectedCourse.grade;
+        
+        // 2. El alumno no debe estar ya asignado a este curso
+        const notInThisCourse = !selectedCourse.students.includes(student.id);
+        
+        // 3. El alumno no debe estar asignado a NINGÚN otro curso del mismo año
+        const notInOtherCourse = !courses.some(c => 
+          c.id !== selectedCourse.id && 
+          c.year === selectedCourse.year && 
+          c.students.includes(student.id)
+        );
+        
+        return matchesGrade && notInThisCourse && notInOtherCourse;
+      })
     : [];
 
   const availableTeachers = teachers;
@@ -217,6 +232,8 @@ const GestionCursos = () => {
     }
   };
 
+  const CURRENT_YEAR = new Date().getFullYear();
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -224,7 +241,7 @@ const GestionCursos = () => {
           <FolderOpen className="h-6 w-6 text-primary" />
           <div>
             <h2 className="text-2xl font-bold">Gestión de Cursos</h2>
-            <p className="text-sm text-muted-foreground">Crear cursos y asignar alumnos, profesores y coordinadores</p>
+            <p className="text-sm text-muted-foreground">Año lectivo {CURRENT_YEAR} · Crear cursos y asignar alumnos, profesores y coordinadores</p>
           </div>
         </div>
         <Button onClick={() => setShowCreateDialog(true)}>
@@ -248,6 +265,7 @@ const GestionCursos = () => {
                 <CardTitle className="text-lg">{course.name}</CardTitle>
                 <div className="flex gap-2">
                   <Badge variant="secondary">{course.grade}</Badge>
+                  <Badge variant="outline" className="text-muted-foreground">{course.year}</Badge>
                   <Button variant="ghost" size="icon" onClick={() => handleDeleteCourse(course.id)}>
                     <Trash2 className="h-4 w-4 text-destructive" />
                   </Button>

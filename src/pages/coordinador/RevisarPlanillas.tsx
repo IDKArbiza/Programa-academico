@@ -28,9 +28,12 @@ const RevisarPlanillas = () => {
     fetchAccounts(true);
   }, []);
 
-  const visiblePlanillas = currentRole === 'director'
+  const CURRENT_YEAR = new Date().getFullYear();
+
+  const visiblePlanillas = (currentRole === 'director'
     ? planillas
-    : planillas.filter(planilla => planilla.coordinatorId === user?.id);
+    : planillas.filter(planilla => planilla.coordinatorId === user?.id)
+  ).filter(p => p.year === CURRENT_YEAR);
 
   const pendientes = visiblePlanillas.filter(planilla => planilla.status === 'enviado');
   const aprobadas = visiblePlanillas.filter(planilla => planilla.status === 'aprobado');
@@ -116,8 +119,8 @@ const RevisarPlanillas = () => {
           <h2 className="text-2xl font-bold">Revisar Planillas</h2>
           <p className="text-sm text-muted-foreground">
             {currentRole === 'director'
-              ? 'Ves todas las planillas del sistema.'
-              : 'Solo ves las planillas de los cursos que coordinás.'}
+              ? `Año ${CURRENT_YEAR} — Ves todas las planillas del sistema.`
+              : `Año ${CURRENT_YEAR} — Solo ves las planillas de los cursos que coordinás.`}
           </p>
         </div>
       </div>

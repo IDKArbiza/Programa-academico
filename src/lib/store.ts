@@ -25,7 +25,7 @@ interface AppState {
   login: (email: string, password: string) => Promise<boolean>;
 }
 
-export const useAppStore = create<AppState>((set, get) => ({
+export const useAppStore = create<AppState>((set) => ({
   currentRole: null,
   currentUserId: null,
   user: null,
@@ -42,14 +42,15 @@ export const useAppStore = create<AppState>((set, get) => ({
   login: async (email: string, password: string) => {
     set({ isLoading: true });
     try {
-      // Ensure accounts are loaded
+      // Ensure accounts are loaded from Firestore
       const accountsStore = useAccountsStore.getState();
       if (!accountsStore.loaded) {
         await accountsStore.fetchAccounts();
       }
-      
+
       const account = useAccountsStore.getState().getByEmail(email);
-      if (account && account.status === 'activo') {
+      // Password is validated against the account's CI (national ID number)
+      if (account && account.status === 'activo' && account.ci === password) {
         const user: User = {
           id: account.id,
           name: `${account.firstName} ${account.lastName}`,
@@ -57,11 +58,11 @@ export const useAppStore = create<AppState>((set, get) => ({
           role: account.role,
           grade: account.grade,
         };
-        set({ 
-          user, 
-          currentRole: account.role, 
+        set({
+          user,
+          currentRole: account.role,
           currentUserId: account.id,
-          isLoading: false 
+          isLoading: false,
         });
         return true;
       }
@@ -72,5 +73,5 @@ export const useAppStore = create<AppState>((set, get) => ({
       set({ isLoading: false });
       return false;
     }
-  }
+  },
 }));

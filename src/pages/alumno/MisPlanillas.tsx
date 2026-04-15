@@ -4,7 +4,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { ALL_MONTHS } from '@/lib/mock-data';
 import { Label } from '@/components/ui/label';
-import { Layers, Eye, Lock } from 'lucide-react';
+import { Eye, Layers } from 'lucide-react';
 import { usePlanillasStore } from '@/lib/planillas-store';
 import { useAppStore } from '@/lib/store';
 import { useCoursesStore } from '@/lib/courses-store';
@@ -30,34 +30,38 @@ const MisPlanillas = () => {
   const [selectedMonth, setSelectedMonth] = useState('3');
   const month = parseInt(selectedMonth);
   const monthName = ALL_MONTHS.find(m => m.month === month)?.name || '';
+  const CURRENT_YEAR = new Date().getFullYear();
 
   const approvedPlanillas = planillas.filter(
     p =>
       p.status === 'aprobado' &&
       p.month === month &&
-      p.year === 2026 &&
+      p.year === CURRENT_YEAR &&
       p.scores.some(s => s.studentId === STUDENT_ID) &&
-      (studentCourse ? p.courseId === studentCourse.id || p.grade === grade : p.grade === grade)
+      (studentCourse
+        ? p.courseId === studentCourse.id || p.grade === grade
+        : p.grade === grade)
   );
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center gap-3">
-        <Layers className="h-6 w-6 text-primary" />
-        <div>
-          <h2 className="text-2xl font-bold">Mis Planillas Mensuales</h2>
-          <p className="text-sm text-muted-foreground">
-            <Lock className="h-3 w-3 inline mr-1" />
-            Solo podés ver tus puntajes — aprobados por el Coordinador
-          </p>
+    <div className="space-y-4">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <Layers className="h-6 w-6 text-primary" />
+          <div>
+            <h2 className="text-2xl font-bold">Mis Planillas</h2>
+            <p className="text-sm text-muted-foreground">Consultá tus puntajes por materia</p>
+          </div>
         </div>
-      </div>
 
-      <div className="flex gap-4 flex-wrap items-end">
-        <div className="space-y-1">
-          <Label>Mes</Label>
+        {/* Month selector */}
+        <div className="flex items-center gap-2">
+          <Label className="text-sm font-medium">Mes:</Label>
           <Select value={selectedMonth} onValueChange={setSelectedMonth}>
-            <SelectTrigger className="w-48"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="w-48">
+              <SelectValue />
+            </SelectTrigger>
             <SelectContent>
               {ALL_MONTHS.map(m => (
                 <SelectItem key={m.month} value={String(m.month)}>{m.name}</SelectItem>
@@ -65,16 +69,19 @@ const MisPlanillas = () => {
             </SelectContent>
           </Select>
         </div>
-        <div className="text-sm text-muted-foreground pb-2">
-          <Eye className="h-4 w-4 inline mr-1" />
-          Solo se muestran planillas aprobadas
-        </div>
       </div>
 
-      <div className="text-center bg-primary/10 border border-primary/20 rounded-lg p-3 mb-2">
-        <h3 className="font-bold text-lg">Puntajes de {monthName} 2026</h3>
+      <div className="flex items-center gap-1 text-sm text-muted-foreground pb-1">
+        <Eye className="h-4 w-4" />
+        Solo se muestran planillas aprobadas
+      </div>
+
+      {/* Student + month info banner */}
+      <div className="text-center bg-primary/10 border border-primary/20 rounded-lg p-3">
+        <h3 className="font-bold text-lg">Puntajes de {monthName} {CURRENT_YEAR}</h3>
         <p className="text-sm text-muted-foreground">
-          {studentName} — {grade} Bachillerato Técnico en Informática
+          {studentName}
+          {grade ? ` — ${grade} Bachillerato Técnico en Informática` : ''}
         </p>
       </div>
 
@@ -95,6 +102,16 @@ const MisPlanillas = () => {
 
         if (!myScores) return null;
 
+        const pct = totalMax > 0 ? myTotal / totalMax : 0;
+        const colorClass =
+          pct >= 0.8 ? 'text-green-600' :
+          pct >= 0.5 ? 'text-amber-600' :
+          'text-red-600';
+        const barClass =
+          pct >= 0.8 ? 'bg-green-500' :
+          pct >= 0.5 ? 'bg-amber-500' :
+          'bg-red-500';
+
         return (
           <Card key={planilla.id}>
             <CardContent className="p-4">
@@ -108,7 +125,7 @@ const MisPlanillas = () => {
                 <Badge className="bg-green-500/20 text-green-700 border-green-300">Publicado</Badge>
               </div>
 
-              {/* Show individual task scores */}
+              {/* Individual task scores */}
               <div className="flex flex-wrap gap-2 mb-3">
                 {planilla.tasks.map(task => (
                   <div key={task.id} className="text-center border rounded-lg p-2 min-w-[60px]">
@@ -119,28 +136,21 @@ const MisPlanillas = () => {
                 ))}
               </div>
 
+              {/* Total score + progress bar */}
               <div className="flex items-center gap-4">
-                <div className={`text-3xl font-bold ${
-                  myTotal / totalMax >= 0.8 ? 'text-green-600' :
-                  myTotal / totalMax >= 0.5 ? 'text-amber-600' :
-                  'text-red-600'
-                }`}>
+                <div className={`text-3xl font-bold ${colorClass}`}>
                   {myTotal}
                 </div>
                 <div className="text-sm text-muted-foreground">/ {totalMax} puntos</div>
                 <div className="flex-1">
                   <div className="h-2 bg-muted rounded-full overflow-hidden">
                     <div
-                      className={`h-full rounded-full ${
-                        myTotal / totalMax >= 0.8 ? 'bg-green-500' :
-                        myTotal / totalMax >= 0.5 ? 'bg-amber-500' :
-                        'bg-red-500'
-                      }`}
-                      style={{ width: `${Math.min((myTotal / totalMax) * 100, 100)}%` }}
+                      className={`h-full rounded-full ${barClass}`}
+                      style={{ width: `${Math.min(pct * 100, 100)}%` }}
                     />
                   </div>
                   <p className="text-xs text-muted-foreground mt-1">
-                    {totalMax > 0 ? ((myTotal / totalMax) * 100).toFixed(0) : 0}% del puntaje total
+                    {totalMax > 0 ? (pct * 100).toFixed(0) : 0}% del puntaje total
                   </p>
                 </div>
               </div>

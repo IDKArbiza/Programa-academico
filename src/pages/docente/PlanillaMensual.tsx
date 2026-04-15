@@ -25,6 +25,7 @@ const PlanillaMensual = () => {
 
   const TEACHER_ID = user?.id || '';
   const teacherName = user?.name || 'Profesor';
+  const CURRENT_YEAR = new Date().getFullYear();
 
   useEffect(() => {
     fetchPlanillas(true);
@@ -142,7 +143,7 @@ const PlanillaMensual = () => {
   };
 
   const existingPlanilla = planillas.find(
-    planilla => planilla.subjectId === selectedSubjectId && planilla.month === month && planilla.year === 2026 && planilla.teacherId === TEACHER_ID
+    planilla => planilla.subjectId === selectedSubjectId && planilla.month === month && planilla.year === CURRENT_YEAR && planilla.teacherId === TEACHER_ID
   );
 
   const buildPlanillaScores = () => students.map(student => ({
@@ -178,7 +179,7 @@ const PlanillaMensual = () => {
           coordinatorId: courseCoordinatorId,
           grade: subject.grade,
           month,
-          year: 2026,
+          year: CURRENT_YEAR,
           etapa: month <= 7 ? 1 : 2,
           tasks,
           scores: planillaScores,
@@ -231,7 +232,7 @@ const PlanillaMensual = () => {
           coordinatorId: courseCoordinatorId,
           grade: subject.grade,
           month,
-          year: 2026,
+          year: CURRENT_YEAR,
           etapa: month <= 7 ? 1 : 2,
           tasks,
           scores: planillaScores,
@@ -390,7 +391,7 @@ const PlanillaMensual = () => {
                   <CardContent className="p-0 overflow-x-auto">
                     <div className="text-center py-3 border-b border-border px-4">
                       <h3 className="font-bold text-lg">Planilla de Informe Mensual - {subject.name}</h3>
-                      <p className="font-semibold text-primary">{monthName} de 2026</p>
+                      <p className="font-semibold text-primary">{monthName} de {CURRENT_YEAR}</p>
                       <p className="text-sm text-muted-foreground">
                         <strong>Curso:</strong> {subject.courseName}
                       </p>
