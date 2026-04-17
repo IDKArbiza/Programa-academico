@@ -56,10 +56,12 @@ Específicamente el producto Cloud Firestore:
 
 ---
 
-## Resumen del Flujo de la Arquitectura
-1. **El Usuario:** Visualiza interfaces construidas con componentes aislados de prefabricados en **Shadcn**.
-2. **Las Interacciones (Guardar planilla, Iniciar sesión):** Disparan acciones en los **Stores de Zustand**.
-3. **Persistencia de Estado:** **Zustand** intercepta estos comandos, hace la petición asíncrona hacia las colecciones de **Firebase Firestore (NoSQL)** y, si es exitosa, auto-refleja los cambios localmente. Toda la aplicación conectada a dichos stores se re-dibuja al instante gracia a **React**.
+## 5. Arquitectura de Datos y Modelo de Entidad-Relación
+
+El sistema utiliza una arquitectura NoSQL basada en colecciones y documentos, optimizada para lecturas rápidas de reportes y planillas. 
+
+Para una visión técnica profunda, diagramas detallados de las relaciones y especificaciones de campos, consulte el documento:
+👉 **[MODELO_DATOS.md](file:///c:/Users/Giovanni%20Portillo/Documents/GitHub/Programa-academico/MODELO_DATOS.md)**
 
 ---
 *Este registro sirve como marco de referencia para entender a profundidad qué conforma el sistema bajo el capó a fin de extenderlo y darle mantenimiento futuro continuo sin perder lineamiento de arquitectura.*
