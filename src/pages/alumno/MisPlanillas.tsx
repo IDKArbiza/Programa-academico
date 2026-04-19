@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { ALL_MONTHS } from '@/lib/mock-data';
+import { ALL_MONTHS } from '@/lib/constants';
 import { Label } from '@/components/ui/label';
 import { Eye, Layers } from 'lucide-react';
 import { usePlanillasStore } from '@/lib/planillas-store';

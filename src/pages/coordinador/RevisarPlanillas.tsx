@@ -9,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { CheckCircle, XCircle, Eye, Clock, Layers } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { usePlanillasStore, Planilla } from '@/lib/planillas-store';
-import { ALL_MONTHS } from '@/lib/mock-data';
+import { ALL_MONTHS } from '@/lib/constants';
 import { useAppStore } from '@/lib/store';
 import { useAccountsStore } from '@/lib/accounts-store';
 
