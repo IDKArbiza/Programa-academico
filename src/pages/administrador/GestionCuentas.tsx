@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { UserPlus, Users, BookOpen, GraduationCap, Trash2, Shield } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAccountsStore, Account } from '@/lib/accounts-store';
+import { toPascalCase } from '@/lib/utils';
 
 const GestionCuentas = () => {
   const { toast } = useToast();
@@ -18,6 +19,9 @@ const GestionCuentas = () => {
   useEffect(() => { fetchAccounts(true); }, []);
 
   const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [activeTab, setActiveTab] = useState('alumno');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [gradeFilter, setGradeFilter] = useState('Todos');
   const [newAccount, setNewAccount] = useState({
     firstName: '', lastName: '', ci: '', role: '' as string, grade: '',
   });
@@ -39,10 +43,13 @@ const GestionCuentas = () => {
       return;
     }
 
+    const formattedFirstName = newAccount.firstName.trim();
+    const formattedLastName = newAccount.lastName.trim();
+
     try {
       await createAccount({
-        firstName: newAccount.firstName,
-        lastName: newAccount.lastName,
+        firstName: formattedFirstName,
+        lastName: formattedLastName,
         ci: newAccount.ci,
         email,
         role: newAccount.role as Account['role'],
@@ -53,23 +60,18 @@ const GestionCuentas = () => {
       setShowCreateDialog(false);
       toast({
         title: 'Cuenta creada',
-        description: `${newAccount.firstName} ${newAccount.lastName} — Email: ${email} — Contraseña: ${newAccount.ci}cpcc`,
+        description: `${formattedFirstName} ${formattedLastName} — Email: ${email} — Contraseña: ${newAccount.ci}cpcc`,
       });
     } catch {
       toast({ title: 'Error', description: 'No se pudo crear la cuenta', variant: 'destructive' });
     }
   };
 
-  const handleDeleteAccount = async (id: string) => {
-    try {
-      await removeAccount(id);
-      toast({ title: 'Cuenta eliminada' });
-    } catch {
-      toast({ title: 'Error', description: 'No se pudo eliminar la cuenta', variant: 'destructive' });
-    }
-  };
+
 
   const handleToggleStatus = async (account: Account) => {
+    const action = account.status === 'activo' ? 'desactivar' : 'activar';
+    if (!confirm(`¿Estás seguro que deseas ${action} la cuenta de ${account.firstName} ${account.lastName}?`)) return;
     try {
       await updateAccount(account.id, {
         status: account.status === 'activo' ? 'inactivo' : 'activo',
@@ -100,7 +102,25 @@ const GestionCuentas = () => {
     }
   };
 
-  const filterByRole = (role: string) => accounts.filter(a => a.role === role);
+  const normalizeString = (str: string) => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+
+  const filterByView = (view: string) => {
+    return accounts
+      .filter(a => {
+        if (view === 'egresado') return a.status === 'egresado';
+        if (view === 'alumno') return a.role === 'alumno' && a.status !== 'egresado';
+        return a.role === view;
+      })
+      .filter(a => {
+        if ((view === 'alumno' || view === 'egresado') && gradeFilter !== 'Todos' && a.grade !== gradeFilter) return false;
+        if (!searchTerm) return true;
+        const term = normalizeString(searchTerm);
+        return normalizeString(a.firstName).includes(term) ||
+               normalizeString(a.lastName).includes(term) ||
+               a.ci.includes(term);
+      })
+      .sort((a, b) => a.lastName.localeCompare(b.lastName));
+  };
 
   return (
     <div className="space-y-6">
@@ -117,27 +137,50 @@ const GestionCuentas = () => {
         </Button>
       </div>
 
+      <div className="flex items-center gap-4 flex-wrap">
+        <Input
+          placeholder="Buscar cuenta por nombre, apellido o cédula..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="max-w-md"
+        />
+        {(activeTab === 'alumno' || activeTab === 'egresado') && (
+          <Select value={gradeFilter} onValueChange={setGradeFilter}>
+            <SelectTrigger className="w-48"><SelectValue placeholder="Filtrar curso" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="Todos">Todos los Cursos</SelectItem>
+              <SelectItem value="1° Año">1° Año</SelectItem>
+              <SelectItem value="2° Año">2° Año</SelectItem>
+              <SelectItem value="3° Año">3° Año</SelectItem>
+            </SelectContent>
+          </Select>
+        )}
+      </div>
+
       {loading && <p className="text-center text-muted-foreground py-8">Cargando cuentas...</p>}
 
-      <Tabs defaultValue="alumno">
-        <TabsList>
-          <TabsTrigger value="alumno">
-            <GraduationCap className="h-4 w-4 mr-1" /> Alumnos ({filterByRole('alumno').length})
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <TabsList className="mb-4 flex-wrap h-auto">
+          <TabsTrigger value="alumno" className="py-2">
+            <GraduationCap className="h-4 w-4 mr-1" /> Alumnos ({filterByView('alumno').length})
           </TabsTrigger>
-          <TabsTrigger value="docente">
-            <BookOpen className="h-4 w-4 mr-1" /> Profesores ({filterByRole('docente').length})
+          <TabsTrigger value="docente" className="py-2">
+            <BookOpen className="h-4 w-4 mr-1" /> Profesores ({filterByView('docente').length})
           </TabsTrigger>
-          <TabsTrigger value="coordinador">
-            <Users className="h-4 w-4 mr-1" /> Coordinadores ({filterByRole('coordinador').length})
+          <TabsTrigger value="coordinador" className="py-2">
+            <Users className="h-4 w-4 mr-1" /> Coordinadores ({filterByView('coordinador').length})
           </TabsTrigger>
-          <TabsTrigger value="administrador">
-            <Shield className="h-4 w-4 mr-1" /> Administradores ({filterByRole('administrador').length})
+          <TabsTrigger value="administrador" className="py-2">
+            <Shield className="h-4 w-4 mr-1" /> Administradores ({filterByView('administrador').length})
+          </TabsTrigger>
+          <TabsTrigger value="egresado" className="py-2">
+            <GraduationCap className="h-4 w-4 mr-1 text-yellow-600" /> Egresados ({filterByView('egresado').length})
           </TabsTrigger>
         </TabsList>
 
-        {['alumno', 'docente', 'coordinador', 'administrador'].map(role => (
-          <TabsContent key={role} value={role} className="space-y-3">
-            {filterByRole(role).map(account => (
+        {['alumno', 'docente', 'coordinador', 'administrador', 'egresado'].map(view => (
+          <TabsContent key={view} value={view} className="space-y-3">
+            {filterByView(view).map(account => (
               <Card key={account.id}>
                 <CardContent className="p-4 flex items-center justify-between">
                   <div className="flex items-center gap-3">
@@ -153,21 +196,20 @@ const GestionCuentas = () => {
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Badge variant={account.status === 'activo' ? 'default' : 'secondary'}>
+                    <Badge variant={account.status === 'activo' ? 'default' : account.status === 'egresado' ? 'outline' : 'secondary'} className={account.status === 'egresado' ? 'border-yellow-500 text-yellow-700' : ''}>
                       {account.status}
                     </Badge>
-                    <Button variant="ghost" size="sm" onClick={() => handleToggleStatus(account)}>
-                      {account.status === 'activo' ? 'Desactivar' : 'Activar'}
-                    </Button>
-                    <Button variant="ghost" size="icon" onClick={() => handleDeleteAccount(account.id)}>
-                      <Trash2 className="h-4 w-4 text-destructive" />
-                    </Button>
+                    {account.status !== 'egresado' && (
+                      <Button variant="ghost" size="sm" onClick={() => handleToggleStatus(account)}>
+                        {account.status === 'activo' ? 'Desactivar' : 'Activar'}
+                      </Button>
+                    )}
                   </div>
                 </CardContent>
               </Card>
             ))}
-            {filterByRole(role).length === 0 && (
-              <p className="text-center text-muted-foreground py-8">No hay cuentas de este tipo.</p>
+            {filterByView(view).length === 0 && (
+              <p className="text-center text-muted-foreground py-8">No hay cuentas aquí.</p>
             )}
           </TabsContent>
         ))}
@@ -184,11 +226,11 @@ const GestionCuentas = () => {
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
                 <Label>Nombre</Label>
-                <Input value={newAccount.firstName} onChange={(e) => setNewAccount(p => ({ ...p, firstName: e.target.value }))} />
+                <Input value={newAccount.firstName} onChange={(e) => setNewAccount(p => ({ ...p, firstName: e.target.value.toUpperCase() }))} />
               </div>
               <div className="space-y-2">
                 <Label>Apellido</Label>
-                <Input value={newAccount.lastName} onChange={(e) => setNewAccount(p => ({ ...p, lastName: e.target.value }))} />
+                <Input value={newAccount.lastName} onChange={(e) => setNewAccount(p => ({ ...p, lastName: e.target.value.toUpperCase() }))} />
               </div>
             </div>
             <div className="space-y-2">

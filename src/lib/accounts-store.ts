@@ -13,7 +13,7 @@ export interface Account {
   email: string;
   role: UserRole;
   grade?: string;
-  status: 'activo' | 'inactivo';
+  status: 'activo' | 'inactivo' | 'egresado';
   createdAt?: string;
   updatedAt?: string;
 }

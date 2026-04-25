@@ -51,7 +51,7 @@ export const useAppStore = create<AppState>((set) => ({
       const account = useAccountsStore.getState().getByEmail(email);
       // Password is validated against the account's CI (ignoring dots) + 'cpcc' suffix
       if (account && account.status === 'activo' && `${account.ci.replace(/\./g, '')}cpcc` === password) {
-        const normalizedRole = (account.role as string) === 'director' ? 'administrador' : account.role;
+        const normalizedRole = account.role;
         const userName = account.firstName && account.lastName 
           ? `${account.firstName} ${account.lastName}` 
           : (account as any).name || account.email;

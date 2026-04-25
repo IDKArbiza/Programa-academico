@@ -71,13 +71,23 @@ const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
       }`}>
         <div className="p-4 border-b border-sidebar-border">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 mb-4">
             <div className="p-2 rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
               <GraduationCap className="h-5 w-5" />
             </div>
             <div>
-              <h2 className="font-bold text-sm">Colegio CPCC</h2>
-              <p className="text-xs opacity-70">Nivel Medio · Informática</p>
+              <h2 className="font-bold text-sm">Colegio Politécnico CPCC</h2>
+              <p className="text-xs opacity-70">Nivel Medio</p>
+            </div>
+          </div>
+          
+          <div className="flex items-center gap-2 px-1 py-1 bg-sidebar-accent/50 rounded-lg">
+            <div className="p-1.5 flex items-center justify-center rounded-md bg-background/50 text-foreground">
+              {roleIcons[currentRole]}
+            </div>
+            <div className="flex-1 overflow-hidden">
+              <span className="text-sm font-medium block truncate">{user?.name || 'Usuario'}</span>
+              <span className="text-xs opacity-70 block">{roleLabels[currentRole]}</span>
             </div>
           </div>
         </div>
@@ -103,14 +113,7 @@ const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
           })}
         </nav>
 
-        <div className="p-3 border-t border-sidebar-border">
-          <div className="flex items-center gap-2 px-3 py-2 mb-2">
-            {roleIcons[currentRole]}
-            <div>
-              <span className="text-sm font-medium block">{roleLabels[currentRole]}</span>
-              {user && <span className="text-xs opacity-70">{user.name}</span>}
-            </div>
-          </div>
+        <div className="p-3 border-t border-sidebar-border mt-auto">
           <Button
             variant="ghost"
             className="w-full justify-start gap-2 text-sidebar-foreground hover:bg-sidebar-accent"
@@ -128,7 +131,7 @@ const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
             <Menu className="h-5 w-5" />
           </Button>
           <h1 className="text-lg font-semibold text-foreground">
-            Panel {roleLabels[currentRole]} — CPCC
+            {roleLabels[currentRole]} — Colegio Politécnico CPCC
           </h1>
         </header>
         <main className="flex-1 p-4 md:p-6 animate-fade-in">

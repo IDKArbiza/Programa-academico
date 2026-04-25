@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ALL_MONTHS } from '@/lib/constants';
 import { Label } from '@/components/ui/label';
-import { Save, Send, Layers, Plus, Trash2, Edit2, FileText } from 'lucide-react';
+import { Save, Send, Layers, Plus, Trash2, Edit2, FileText, AlertTriangle, CheckCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { usePlanillasStore, TaskRow, Planilla } from '@/lib/planillas-store';
@@ -123,6 +123,10 @@ const PlanillaMensual = () => {
     setTasks(prev => [...prev, { id: `task-${Date.now()}`, name: `Tarea ${prev.length + 1}`, maxPoints: 2 }]);
   };
 
+  const addSpecialTask = (name: string, maxPoints: number) => {
+    setTasks(prev => [...prev, { id: `task-${Date.now()}`, name, maxPoints }]);
+  };
+
   const removeTask = (taskId: string) => {
     if (tasks.length <= 1) return;
     setTasks(prev => prev.filter(task => task.id !== taskId));
@@ -130,15 +134,35 @@ const PlanillaMensual = () => {
 
   const [editingTask, setEditingTask] = useState<TaskRow | null>(null);
   const [editName, setEditName] = useState('');
+  const [editMaxPoints, setEditMaxPoints] = useState<number>(2);
+
+  const [selectedClaim, setSelectedClaim] = useState<any>(null);
+  const [teacherReply, setTeacherReply] = useState('');
+
+  const handleResolveClaim = async () => {
+    if (!selectedClaim || !existingPlanilla) return;
+    try {
+      const nextClaims = (existingPlanilla.claims || []).map(c => 
+        c.id === selectedClaim.id ? { ...c, resolved: true, teacherMessage: teacherReply, teacherDate: new Date().toISOString() } : c
+      );
+      await updatePlanilla(existingPlanilla.id, { claims: nextClaims });
+      toast({ title: 'Reclamo resuelto', description: 'La respuesta fue enviada al alumno.' });
+      setSelectedClaim(null);
+      await fetchPlanillas(true);
+    } catch {
+      toast({ title: 'Error', variant: 'destructive' });
+    }
+  };
 
   const startEditTask = (task: TaskRow) => {
     setEditingTask(task);
     setEditName(task.name);
+    setEditMaxPoints(task.maxPoints);
   };
 
   const saveEditTask = () => {
-    if (!editingTask || !editName.trim()) return;
-    setTasks(prev => prev.map(task => task.id === editingTask.id ? { ...task, name: editName.trim() } : task));
+    if (!editingTask || !editName.trim() || editMaxPoints <= 0) return;
+    setTasks(prev => prev.map(task => task.id === editingTask.id ? { ...task, name: editName.trim(), maxPoints: editMaxPoints } : task));
     setEditingTask(null);
   };
 
@@ -165,7 +189,9 @@ const PlanillaMensual = () => {
           courseId: subject.courseId,
           courseName: subject.courseName,
           coordinatorId: courseCoordinatorId,
-          status: 'borrador',
+          status: (existingPlanilla.status === 'aprobado' || existingPlanilla.status === 'enviado') 
+            ? existingPlanilla.status 
+            : 'borrador',
           rejectionReason: undefined,
         });
       } else {
@@ -363,8 +389,7 @@ const PlanillaMensual = () => {
                 )}
               </div>
 
-              {existingPlanilla?.status !== 'enviado' && existingPlanilla?.status !== 'aprobado' && (
-                <div className="flex items-center gap-2 flex-wrap">
+              <div className="flex items-center gap-2 flex-wrap">
                   <span className="text-sm font-medium">Tareas del mes:</span>
                   {tasks.map(task => (
                     <Badge key={task.id} variant="outline" className="gap-1 pr-1">
@@ -379,13 +404,21 @@ const PlanillaMensual = () => {
                       )}
                     </Badge>
                   ))}
-                  <Button variant="outline" size="sm" onClick={addTask}>
-                    <Plus className="h-3 w-3 mr-1" /> Agregar Tarea
-                  </Button>
-                </div>
-              )}
-
-              {students.length === 0 ? (
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    <Button variant="outline" size="sm" onClick={addTask}>
+                      <Plus className="h-3 w-3 mr-1" /> Agregar Tarea
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={() => addSpecialTask('Trabajo Práctico', 5)}>
+                      <Plus className="h-3 w-3 mr-1" /> Añadir T.P.
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={() => addSpecialTask('Examen Parcial', 12)}>
+                      <Plus className="h-3 w-3 mr-1" /> Añadir Ex. Parcial
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={() => addSpecialTask('Examen', 30)}>
+                      <Plus className="h-3 w-3 mr-1" /> Añadir Examen
+                    </Button>
+                  </div>
+                </div>              {students.length === 0 ? (
                 <div className="text-center text-muted-foreground py-8 border border-dashed rounded-lg">
                   <p>No hay alumnos asignados a este curso.</p>
                   <p className="text-xs mt-1">El Coordinador debe asignar alumnos desde Gestión de Cursos.</p>
@@ -427,7 +460,27 @@ const PlanillaMensual = () => {
                             <tr key={student.id} className="border-b border-border hover:bg-muted/20">
                               <td className="text-center py-1 px-2 border-r border-border text-muted-foreground font-medium">{index + 1}</td>
                               <td className="py-1 px-3 border-r border-border font-medium whitespace-nowrap">
-                                {student.lastName}, {student.firstName}
+                                <div className="flex items-center gap-2">
+                                  {student.lastName}, {student.firstName}
+                                  {existingPlanilla?.claims?.find(c => c.studentId === student.id && !c.resolved) && (
+                                    <button onClick={() => {
+                                      const claim = existingPlanilla.claims!.find(c => c.studentId === student.id && !c.resolved)!;
+                                      setSelectedClaim(claim);
+                                      setTeacherReply('');
+                                    }} className="text-red-500 hover:text-red-700 hover:bg-red-50 rounded" title="Reclamo pendiente">
+                                      <AlertTriangle className="h-4 w-4" />
+                                    </button>
+                                  )}
+                                  {existingPlanilla?.claims?.find(c => c.studentId === student.id && c.resolved) && (
+                                    <button className="text-green-500 hover:text-green-700" title="Reclamo resuelto" onClick={() => {
+                                      const claim = existingPlanilla.claims!.find(c => c.studentId === student.id && c.resolved)!;
+                                      setSelectedClaim(claim);
+                                      setTeacherReply(claim.teacherMessage || '');
+                                    }}>
+                                      <CheckCircle className="h-4 w-4" />
+                                    </button>
+                                  )}
+                                </div>
                               </td>
                               {tasks.map(task => (
                                 <td key={task.id} className="text-center py-1 px-1 border-r border-border">
@@ -437,9 +490,8 @@ const PlanillaMensual = () => {
                                     max={task.maxPoints}
                                     value={getScore(student.id, task.id) || ''}
                                     onChange={(e) => setScore(student.id, task.id, e.target.value, task.maxPoints)}
-                                    className="w-12 h-7 mx-auto text-center text-xs font-bold p-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                    className="w-14 h-7 mx-auto text-center text-xs font-bold p-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                                     placeholder="-"
-                                    disabled={existingPlanilla?.status === 'aprobado' || existingPlanilla?.status === 'enviado'}
                                   />
                                 </td>
                               ))}
@@ -457,14 +509,16 @@ const PlanillaMensual = () => {
                 </Card>
               )}
 
-              {existingPlanilla?.status !== 'aprobado' && existingPlanilla?.status !== 'enviado' && students.length > 0 && (
+              {students.length > 0 && (
                 <div className="flex gap-3">
                   <Button variant="outline" onClick={handleSave} disabled={loading || submitting}>
-                    <Save className="h-4 w-4 mr-2" />Guardar Borrador
+                    <Save className="h-4 w-4 mr-2" />{existingPlanilla?.status === 'aprobado' || existingPlanilla?.status === 'enviado' ? 'Actualizar Puntajes' : 'Guardar Borrador'}
                   </Button>
-                  <Button onClick={handleSubmit} disabled={loading || submitting || !courseCoordinatorId}>
-                    <Send className="h-4 w-4 mr-2" />{submitting ? 'Enviando...' : 'Enviar al Coordinador'}
-                  </Button>
+                  {existingPlanilla?.status !== 'aprobado' && existingPlanilla?.status !== 'enviado' && (
+                    <Button onClick={handleSubmit} disabled={loading || submitting || !courseCoordinatorId}>
+                      <Send className="h-4 w-4 mr-2" />{submitting ? 'Enviando...' : 'Enviar al Coordinador'}
+                    </Button>
+                  )}
                 </div>
               )}
             </>
@@ -530,10 +584,44 @@ const PlanillaMensual = () => {
               <Label>Nombre de la tarea</Label>
               <Input value={editName} onChange={(e) => setEditName(e.target.value)} />
             </div>
+            <div className="space-y-1">
+              <Label>Puntaje Máximo</Label>
+              <Input type="number" min={1} value={editMaxPoints} onChange={(e) => setEditMaxPoints(parseInt(e.target.value) || 0)} />
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditingTask(null)}>Cancelar</Button>
             <Button onClick={saveEditTask}>Guardar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      <Dialog open={!!selectedClaim} onOpenChange={(open) => !open && setSelectedClaim(null)}>
+        <DialogContent className="sm:max-w-[400px]">
+          <DialogHeader>
+            <DialogTitle>{selectedClaim?.resolved ? 'Reclamo Resuelto' : 'Reclamo del Alumno'}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="bg-muted p-3 rounded-md text-sm">
+              <span className="font-semibold">{selectedClaim?.studentDate ? new Date(selectedClaim.studentDate).toLocaleDateString() : 'Sin fecha registrado'}</span>
+              <p className="mt-1">{selectedClaim?.studentMessage}</p>
+            </div>
+            
+            <div className="space-y-2">
+              <Label>Respuesta del Profesor</Label>
+              <textarea
+                className="w-full h-24 p-2 text-sm border rounded-md"
+                placeholder={selectedClaim?.resolved ? 'No se incluyó comentario del profesor' : 'Describe la resolución...'}
+                value={teacherReply}
+                onChange={(e) => setTeacherReply(e.target.value)}
+                disabled={selectedClaim?.resolved}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setSelectedClaim(null)}>Cerrar</Button>
+            {!selectedClaim?.resolved && (
+              <Button onClick={handleResolveClaim}>Resolver Reclamo</Button>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>

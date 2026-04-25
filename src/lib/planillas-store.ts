@@ -8,6 +8,16 @@ export interface TaskRow {
   maxPoints: number;
 }
 
+export interface Claim {
+  id: string;
+  studentId: string;
+  studentMessage: string;
+  studentDate: string;
+  resolved: boolean;
+  teacherMessage?: string;
+  teacherDate?: string;
+}
+
 export interface PlanillaScore {
   studentId: string;
   scores: Record<string, number>; // taskId -> score
@@ -33,6 +43,7 @@ export interface Planilla {
   approvedDate?: string;
   approvedBy?: string;
   rejectionReason?: string;
+  claims?: Claim[];
   createdAt?: string;
   updatedAt?: string;
 }

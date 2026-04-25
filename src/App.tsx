@@ -71,8 +71,6 @@ const ProtectedRoutes = () => {
         <Route path="/administrador/cursos" element={<GestionCursos />} />
         <Route path="/administrador/cuentas" element={<GestionCuentas />} />
 
-        {/* Redirección legado */}
-        <Route path="/director/*" element={<Navigate to="/administrador" replace />} />
 
         <Route path="*" element={<NotFound />} />
       </Routes>

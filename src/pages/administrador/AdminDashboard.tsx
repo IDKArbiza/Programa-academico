@@ -9,35 +9,6 @@ import { useToast } from '@/hooks/use-toast';
 
 const AdminDashboard = () => {
   const { toast } = useToast();
-  const [isMigrating, setIsMigrating] = useState(false);
-
-  const handleMigrateRoles = async () => {
-    setIsMigrating(true);
-    try {
-      const usersRef = collection(db, 'users');
-      const q = query(usersRef, where('role', '==', 'director'));
-      const snapshot = await getDocs(q);
-      
-      if (snapshot.empty) {
-        toast({ title: 'Migración', description: 'No se encontraron cuentas con el rol antiguo.' });
-        setIsMigrating(false);
-        return;
-      }
-
-      const updates = snapshot.docs.map(doc => updateDoc(doc.ref, { role: 'administrador' }));
-      await Promise.all(updates);
-      
-      toast({ 
-        title: 'Migración completada', 
-        description: `Se actualizaron ${snapshot.size} cuentas al nuevo rol 'administrador'.` 
-      });
-    } catch (error) {
-      console.error('Migration error:', error);
-      toast({ title: 'Error', description: 'No se pudo completar la migración.', variant: 'destructive' });
-    } finally {
-      setIsMigrating(false);
-    }
-  };
 
   return (
     <div className="space-y-6">

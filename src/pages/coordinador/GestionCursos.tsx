@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { FolderOpen, Plus, Users, BookOpen, Trash2, UserPlus, Shield } from 'lucide-react';
+import { FolderOpen, Plus, Users, BookOpen, Trash2, UserPlus, Shield, GraduationCap } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAccountsStore } from '@/lib/accounts-store';
 import { Course, TeacherAssignment, useCoursesStore } from '@/lib/courses-store';
@@ -15,7 +15,7 @@ type AssignType = 'student' | 'teacher' | 'coordinator';
 
 const GestionCursos = () => {
   const { toast } = useToast();
-  const { accounts, fetchAccounts } = useAccountsStore();
+  const { accounts, fetchAccounts, updateAccount } = useAccountsStore();
   const { courses, loading, fetchCourses, createCourse, updateCourse, deleteCourse: removeCourse } = useCoursesStore();
 
   useEffect(() => {
@@ -58,12 +58,21 @@ const GestionCursos = () => {
     }
   };
 
-  const handleDeleteCourse = async (courseId: string) => {
+
+
+  const handleEgresarCurso = async (studentIds: string[]) => {
+    if (!studentIds.length) {
+      toast({ title: 'Sin alumnos', description: 'No hay alumnos para graduar en este curso.', variant: 'destructive' });
+      return;
+    }
+    if (!confirm('¿Estás seguro/a que deseas graduar este curso completo? Todos sus alumnos pasarán a Egresados permanentemente dentro de su historial.')) return;
+    
     try {
-      await removeCourse(courseId);
-      toast({ title: 'Curso eliminado' });
+      await Promise.all(studentIds.map(id => updateAccount(id, { status: 'egresado' })));
+      await fetchAccounts(true);
+      toast({ title: 'Curso Egresado', description: 'Todos los alumnos del curso fueron marcados como egresados exitosamente.' });
     } catch {
-      toast({ title: 'Error', variant: 'destructive' });
+      toast({ title: 'Error', variant: 'destructive', description: 'Hubo un error al intentar egresar el curso.' });
     }
   };
 
@@ -144,6 +153,7 @@ const GestionCursos = () => {
   };
 
   const removeStudentFromCourse = async (courseId: string, accountId: string) => {
+    if (!confirm('¿Estás seguro que deseas remover a este alumno del curso?')) return;
     const course = courses.find(c => c.id === courseId);
     if (!course) return;
 
@@ -157,6 +167,7 @@ const GestionCursos = () => {
   };
 
   const removeTeacherAssignment = async (course: Course, assignmentId: string) => {
+    if (!confirm('¿Estás seguro que deseas remover al profesor de esta materia asignada?')) return;
     const teacherAssignments = course.teacherAssignments || [];
     const nextAssignments = teacherAssignments.filter(assignment => assignment.id !== assignmentId);
     const nextTeacherIds = Array.from(new Set(nextAssignments.map(assignment => assignment.teacherId)));
@@ -174,6 +185,7 @@ const GestionCursos = () => {
   };
 
   const removeLegacyTeacherFromCourse = async (course: Course, teacherId: string) => {
+    if (!confirm('¿Estás seguro que deseas remover a este profesor del curso?')) return;
     try {
       await updateCourse(course.id, {
         teachers: course.teachers.filter(id => id !== teacherId),
@@ -184,6 +196,7 @@ const GestionCursos = () => {
   };
 
   const removeCoordinatorFromCourse = async (course: Course) => {
+    if (!confirm('¿Estás seguro que deseas remover al coordinador actual?')) return;
     try {
       await updateCourse(course.id, {
         coordinatorId: undefined,
@@ -214,12 +227,19 @@ const GestionCursos = () => {
           c.students.includes(student.id)
         );
         
+        
         return matchesGrade && notInThisCourse && notInOtherCourse;
-      })
+      }).sort((a, b) => a.lastName.localeCompare(b.lastName))
     : [];
 
-  const availableTeachers = teachers;
-  const availableCoordinators = coordinators;
+  const availableTeachers = teachers.sort((a, b) => a.lastName.localeCompare(b.lastName));
+  const availableCoordinators = coordinators.sort((a, b) => a.lastName.localeCompare(b.lastName));
+
+  const MATERIAS_COMUNES = [
+    'Matemática', 'Lengua Castellana y Literatura', 'Historia y Geografía',
+    'Ciencias Básicas', 'Física', 'Química', 'Informática',
+    'Programación', 'Educación Física', 'Inglés', 'Artes', 'Trabajo y Tecnología'
+  ];
 
   const assignDialogTitle = () => {
     switch (assignType) {
@@ -266,9 +286,11 @@ const GestionCursos = () => {
                 <div className="flex gap-2">
                   <Badge variant="secondary">{course.grade}</Badge>
                   <Badge variant="outline" className="text-muted-foreground">{course.year}</Badge>
-                  <Button variant="ghost" size="icon" onClick={() => handleDeleteCourse(course.id)}>
-                    <Trash2 className="h-4 w-4 text-destructive" />
-                  </Button>
+                  {course.grade === '3° Año' && course.students.length > 0 && (
+                    <Button variant="ghost" size="icon" className="hover:text-yellow-600 hover:bg-yellow-100" onClick={() => handleEgresarCurso(course.students)} title="Graduar Curso Completo">
+                      <GraduationCap className="h-4 w-4" />
+                    </Button>
+                  )}
                 </div>
               </div>
             </CardHeader>
@@ -305,8 +327,12 @@ const GestionCursos = () => {
                     <UserPlus className="h-3 w-3 mr-1" /> Añadir
                   </Button>
                 </div>
-                <div className="flex flex-wrap gap-2">
-                  {course.students.map(studentId => (
+                <div className="flex flex-col items-start gap-1">
+                  {[...course.students].sort((aId, bId) => {
+                    const a = getAccountName(aId);
+                    const b = getAccountName(bId);
+                    return a.localeCompare(b, undefined, { sensitivity: 'base' });
+                  }).map(studentId => (
                     <Badge key={studentId} variant="outline" className="gap-1">
                       {getAccountName(studentId)}
                       <button onClick={() => removeStudentFromCourse(course.id, studentId)} className="hover:text-destructive ml-1">
@@ -329,8 +355,8 @@ const GestionCursos = () => {
                     <UserPlus className="h-3 w-3 mr-1" /> Añadir
                   </Button>
                 </div>
-                <div className="flex flex-wrap gap-2">
-                  {teacherAssignments.map(assignment => (
+                <div className="flex flex-col items-start gap-1">
+                  {[...teacherAssignments].sort((a, b) => getAccountName(a.teacherId).localeCompare(getAccountName(b.teacherId), undefined, { sensitivity: 'base' })).map(assignment => (
                     <Badge key={assignment.id} variant="outline" className="gap-1">
                       {getAccountName(assignment.teacherId)} - {assignment.subjectName}
                       <button onClick={() => removeTeacherAssignment(course, assignment.id)} className="hover:text-destructive ml-1">
@@ -338,7 +364,7 @@ const GestionCursos = () => {
                       </button>
                     </Badge>
                   ))}
-                  {legacyTeacherIds.map(teacherId => (
+                  {[...legacyTeacherIds].sort((aId, bId) => getAccountName(aId).localeCompare(getAccountName(bId), undefined, { sensitivity: 'base' })).map(teacherId => (
                     <Badge key={teacherId} variant="outline" className="gap-1">
                       {getAccountName(teacherId)} - Sin materia definida
                       <button onClick={() => removeLegacyTeacherFromCourse(course, teacherId)} className="hover:text-destructive ml-1">
@@ -426,11 +452,14 @@ const GestionCursos = () => {
             {assignType === 'teacher' && (
               <div className="space-y-2">
                 <Label>Materia</Label>
-                <Input
-                  value={selectedSubjectName}
-                  onChange={(e) => setSelectedSubjectName(e.target.value)}
-                  placeholder="Ej: Matemática, Programación, Historia"
-                />
+                <Select value={selectedSubjectName} onValueChange={setSelectedSubjectName}>
+                  <SelectTrigger><SelectValue placeholder="Seleccionar materia..." /></SelectTrigger>
+                  <SelectContent className="max-h-60">
+                    {MATERIAS_COMUNES.map(materia => (
+                      <SelectItem key={materia} value={materia}>{materia}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             )}
           </div>
