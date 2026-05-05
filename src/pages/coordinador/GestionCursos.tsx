@@ -52,7 +52,7 @@ const GestionCursos = () => {
       setNewCourseName('');
       setNewCourseGrade('');
       setShowCreateDialog(false);
-      toast({ title: 'Curso creado', description: `${newCourseName.trim()} fue creado exitosamente.` });
+      toast({ title: 'Curso creado', description: `${newCourseName.trim()} fue creado exitosamente.`, variant: 'success' });
     } catch {
       toast({ title: 'Error', description: 'No se pudo crear el curso', variant: 'destructive' });
     }
@@ -256,16 +256,16 @@ const GestionCursos = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col items-center justify-center gap-4 mb-6">
         <div className="flex items-center gap-3">
-          <FolderOpen className="h-6 w-6 text-primary" />
-          <div>
+          <FolderOpen className="h-8 w-8 text-primary" />
+          <div className="text-center">
             <h2 className="text-2xl font-bold">Gestión de Cursos</h2>
             <p className="text-sm text-muted-foreground">Año lectivo {CURRENT_YEAR} · Crear cursos y asignar alumnos, profesores y coordinadores</p>
           </div>
         </div>
-        <Button onClick={() => setShowCreateDialog(true)}>
-          <Plus className="h-4 w-4 mr-2" /> Crear Curso
+        <Button onClick={() => setShowCreateDialog(true)} size="lg" className="w-full sm:w-auto">
+          <Plus className="h-5 w-5 mr-2" /> Crear Nuevo Curso
         </Button>
       </div>
 
@@ -393,12 +393,19 @@ const GestionCursos = () => {
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label>Nombre del Curso</Label>
-              <Input
-                value={newCourseName}
-                onChange={(e) => setNewCourseName(e.target.value)}
-                placeholder="Ej: 1° Año - Bachillerato Técnico en Informática"
-              />
+              <Label>Nombre de la Especialidad / Énfasis</Label>
+              <Select value={newCourseName} onValueChange={setNewCourseName}>
+                <SelectTrigger><SelectValue placeholder="Seleccionar especialidad..." /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Bachillerato Técnico en Informática">Bachillerato Técnico en Informática (BTI)</SelectItem>
+                  <SelectItem value="Bachillerato Técnico en Contabilidad">Bachillerato Técnico en Contabilidad (BTC)</SelectItem>
+                  <SelectItem value="Bachillerato Técnico en Administración">Bachillerato Técnico en Administración (BTA)</SelectItem>
+                  <SelectItem value="Bachillerato Técnico en Salud">Bachillerato Técnico en Salud</SelectItem>
+                  <SelectItem value="Bachillerato Científico con Énfasis en Ciencias Básicas">Bachillerato Científico en Ciencias Básicas</SelectItem>
+                  <SelectItem value="Bachillerato Científico con Énfasis en Ciencias Sociales">Bachillerato Científico en Ciencias Sociales</SelectItem>
+                  <SelectItem value="Bachillerato Científico con Énfasis en Artes y Letras">Bachillerato Científico en Artes y Letras</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-2">
               <Label>Curso (Año)</Label>

@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { useToast } from '@/hooks/use-toast';
 import { useAppStore } from '@/lib/store';
 import { useCoursesStore } from '@/lib/courses-store';
+import { useSearchParams } from 'react-router-dom';
 
 const MisPlanillas = () => {
   const { user } = useAppStore();
@@ -56,6 +57,8 @@ const MisPlanillas = () => {
   const grade = studentCourse?.grade || studentGrade;
 
   const [selectedMonth, setSelectedMonth] = useState('3');
+  const [searchParams] = useSearchParams();
+  const taskFilter = searchParams.get('tab') || 'todas';
   const month = parseInt(selectedMonth);
   const monthName = ALL_MONTHS.find(m => m.month === month)?.name || '';
   const CURRENT_YEAR = new Date().getFullYear();
@@ -99,11 +102,6 @@ const MisPlanillas = () => {
         </div>
       </div>
 
-      <div className="flex items-center gap-1 text-sm text-muted-foreground pb-1">
-        <Eye className="h-4 w-4" />
-        Solo se muestran planillas aprobadas
-      </div>
-
       {/* Student + month info banner */}
       <div className="text-center bg-primary/10 border border-primary/20 rounded-lg p-3">
         <h3 className="font-bold text-lg">Puntajes de {monthName} {CURRENT_YEAR}</h3>
@@ -121,14 +119,40 @@ const MisPlanillas = () => {
         </p>
       )}
 
+      {!loading && approvedPlanillas.length > 0 && approvedPlanillas.filter(p => {
+        if (taskFilter === 'todas') return true;
+        return p.tasks.some(task => {
+          const name = task.name.toLowerCase();
+          if (taskFilter === 'tp') return name.includes('tp') || name.includes('trabajo') || name.includes('práctico') || name.includes('practico');
+          if (taskFilter === 'examen') return name.includes('examen') || name.includes('prueba');
+          if (taskFilter === 'tareas') return name.includes('tarea') || name.includes('ejercicio');
+          if (taskFilter === 'institucional') return name.includes('club') || name.includes('asistencia') || name.includes('puntualidad');
+          return true;
+        });
+      }).length === 0 && (
+        <p className="text-center text-muted-foreground py-8">
+          No hay actividades de este tipo para el mes seleccionado.
+        </p>
+      )}
+
       {!loading && approvedPlanillas.map(planilla => {
         const myScores = planilla.scores.find(s => s.studentId === STUDENT_ID);
-        const totalMax = planilla.tasks.reduce((s, t) => s + t.maxPoints, 0);
-        const myTotal = myScores
-          ? planilla.tasks.reduce((s, t) => s + (myScores.scores[t.id] || 0), 0)
-          : 0;
-
         if (!myScores) return null;
+
+        const filteredTasks = planilla.tasks.filter(task => {
+          if (taskFilter === 'todas') return true;
+          const name = task.name.toLowerCase();
+          if (taskFilter === 'tp') return name.includes('tp') || name.includes('trabajo') || name.includes('práctico') || name.includes('practico');
+          if (taskFilter === 'examen') return name.includes('examen') || name.includes('prueba');
+          if (taskFilter === 'tareas') return name.includes('tarea') || name.includes('ejercicio');
+          if (taskFilter === 'institucional') return name.includes('club') || name.includes('asistencia') || name.includes('puntualidad');
+          return true;
+        });
+
+        if (taskFilter !== 'todas' && filteredTasks.length === 0) return null;
+
+        const totalMax = filteredTasks.reduce((s, t) => s + t.maxPoints, 0);
+        const myTotal = filteredTasks.reduce((s, t) => s + (myScores.scores[t.id] || 0), 0);
 
         const pct = totalMax > 0 ? myTotal / totalMax : 0;
         const colorClass =
@@ -182,7 +206,7 @@ const MisPlanillas = () => {
 
               {/* Individual task scores */}
               <div className="flex flex-wrap gap-2 mb-3">
-                {planilla.tasks.map(task => (
+                {filteredTasks.map(task => (
                   <div key={task.id} className="text-center border rounded-lg p-2 min-w-[60px]">
                     <div className="text-[10px] text-muted-foreground truncate max-w-[80px]">{task.name}</div>
                     <div className="font-bold text-sm">{myScores.scores[task.id] || 0}</div>
@@ -208,6 +232,11 @@ const MisPlanillas = () => {
                     {totalMax > 0 ? (pct * 100).toFixed(0) : 0}% del puntaje total
                   </p>
                 </div>
+                {pct < 0.5 && (
+                  <div className="flex w-full items-center gap-1 text-xs text-red-600 mt-2 bg-red-50 p-2 rounded">
+                    <AlertTriangle className="h-3 w-3" /> Leyenda: Consulte con un profesor.
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>

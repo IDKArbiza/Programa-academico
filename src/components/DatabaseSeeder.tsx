@@ -53,37 +53,70 @@ const DatabaseSeeder = () => {
         { id: 'alum4', firstName: 'CARLOS', lastName: 'LOPEZ', ci: '88888', email: '88888@cpcc.com', role: 'alumno', grade: '1° Año', status: 'activo' },
       ];
 
-      users.forEach(u => {
+      const extraAlumnos = Array.from({ length: 25 }).map((_, i) => ({
+        id: `test_alum_${i+1}`,
+        firstName: `ESTUDIANTE ${i+1}`,
+        lastName: `PRUEBA`,
+        ci: `${90000 + i}`,
+        email: `prueba${i+1}@cpcc.com`,
+        role: 'alumno',
+        grade: i % 3 === 0 ? '1° Año' : i % 3 === 1 ? '2° Año' : '3° Año',
+        status: 'activo'
+      }));
+
+      const allUsers = [...users, ...extraAlumnos];
+
+      allUsers.forEach(u => {
         const ref = doc(db, 'users', u.id);
         batch.set(ref, { ...u, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() });
       });
 
       // 2. Courses
+      const alum1 = extraAlumnos.filter(a => a.grade === '1° Año').map(a => a.id);
+      const alum2 = extraAlumnos.filter(a => a.grade === '2° Año').map(a => a.id);
+      const alum3 = extraAlumnos.filter(a => a.grade === '3° Año').map(a => a.id);
+
       const courses = [
         {
           id: 'course1',
-          name: '3er Año - Sección A',
+          name: 'Bachillerato Técnico en Informática',
           grade: '3° Año',
           year: 2026,
           coordinatorId: 'coord1',
-          students: ['alum1', 'alum2'],
+          students: ['alum1', 'alum2', ...alum3],
           teachers: ['prof1'],
-          subjects: ['Matemática'],
+          subjects: ['Matemática', 'Programación'],
           teacherAssignments: [
-            { id: 'assign1', teacherId: 'prof1', subjectName: 'Matemática' }
+            { id: 'assign1', teacherId: 'prof1', subjectName: 'Matemática' },
+            { id: 'assign_prog', teacherId: 'prof1', subjectName: 'Programación' }
           ]
         },
         {
           id: 'course2',
-          name: '1er Año - Sección B',
+          name: 'Bachillerato Científico con Énfasis en Ciencias Básicas',
           grade: '1° Año',
           year: 2026,
           coordinatorId: 'coord1',
-          students: ['alum3', 'alum4'],
+          students: ['alum3', 'alum4', ...alum1],
           teachers: ['prof2'],
-          subjects: ['Lengua Castellana'],
+          subjects: ['Lengua Castellana', 'Física'],
           teacherAssignments: [
-            { id: 'assign2', teacherId: 'prof2', subjectName: 'Lengua Castellana' }
+            { id: 'assign2', teacherId: 'prof2', subjectName: 'Lengua Castellana' },
+            { id: 'assign_fisica', teacherId: 'prof2', subjectName: 'Física' }
+          ]
+        },
+        {
+          id: 'course3',
+          name: 'Bachillerato Técnico en Contabilidad',
+          grade: '2° Año',
+          year: 2026,
+          coordinatorId: 'coord1',
+          students: [...alum2],
+          teachers: ['prof1', 'prof2'],
+          subjects: ['Contabilidad', 'Historia'],
+          teacherAssignments: [
+            { id: 'assign_cont', teacherId: 'prof1', subjectName: 'Contabilidad' },
+            { id: 'assign_hist', teacherId: 'prof2', subjectName: 'Historia' }
           ]
         }
       ];

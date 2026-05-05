@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -6,29 +7,36 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { UserPlus, Users, BookOpen, GraduationCap, Trash2, Shield } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAccountsStore, Account } from '@/lib/accounts-store';
+import { usePlanillasStore } from '@/lib/planillas-store';
 import { toPascalCase } from '@/lib/utils';
 
 const GestionCuentas = () => {
   const { toast } = useToast();
   const { accounts, loading, fetchAccounts, createAccount, updateAccount, deleteAccount: removeAccount } = useAccountsStore();
+  const { planillas, fetchPlanillas } = usePlanillasStore();
 
-  useEffect(() => { fetchAccounts(true); }, []);
+  useEffect(() => { 
+    fetchAccounts(true); 
+    fetchPlanillas(true);
+  }, []);
+
+  const [searchParams] = useSearchParams();
+  const activeTab = searchParams.get('tab') || 'alumno';
 
   const [showCreateDialog, setShowCreateDialog] = useState(false);
-  const [activeTab, setActiveTab] = useState('alumno');
   const [searchTerm, setSearchTerm] = useState('');
   const [gradeFilter, setGradeFilter] = useState('Todos');
   const [newAccount, setNewAccount] = useState({
-    firstName: '', lastName: '', ci: '', role: '' as string, grade: '',
+    firstName: '', lastName: '', ci: '', grade: '',
   });
 
   const handleCreateAccount = async () => {
-    if (!newAccount.firstName || !newAccount.lastName || !newAccount.ci || !newAccount.role) return;
-    if (newAccount.role === 'alumno' && !newAccount.grade) {
+    const currentRole = activeTab === 'egresado' ? 'alumno' : activeTab;
+    if (!newAccount.firstName || !newAccount.lastName || !newAccount.ci) return;
+    if (currentRole === 'alumno' && !newAccount.grade) {
       toast({ title: 'Error', description: 'Debés seleccionar el curso del alumno.', variant: 'destructive' });
       return;
     }
@@ -52,15 +60,16 @@ const GestionCuentas = () => {
         lastName: formattedLastName,
         ci: newAccount.ci,
         email,
-        role: newAccount.role as Account['role'],
-        grade: newAccount.role === 'alumno' ? newAccount.grade : undefined,
-        status: 'activo',
+        role: currentRole as Account['role'],
+        grade: currentRole === 'alumno' ? newAccount.grade : undefined,
+        status: activeTab === 'egresado' ? 'egresado' : 'activo',
       });
-      setNewAccount({ firstName: '', lastName: '', ci: '', role: '', grade: '' });
+      setNewAccount({ firstName: '', lastName: '', ci: '', grade: '' });
       setShowCreateDialog(false);
       toast({
         title: 'Cuenta creada',
         description: `${formattedFirstName} ${formattedLastName} — Email: ${email} — Contraseña: ${newAccount.ci}cpcc`,
+        variant: 'success'
       });
     } catch {
       toast({ title: 'Error', description: 'No se pudo crear la cuenta', variant: 'destructive' });
@@ -77,6 +86,24 @@ const GestionCuentas = () => {
         status: account.status === 'activo' ? 'inactivo' : 'activo',
       });
       toast({ title: `Cuenta ${account.status === 'activo' ? 'desactivada' : 'activada'}` });
+    } catch {
+      toast({ title: 'Error', variant: 'destructive' });
+    }
+  };
+
+  const handlePromoteToEgresado = async (account: Account) => {
+    if (account.grade !== '3° Año') {
+      toast({ title: 'Error', description: 'Sólo alumnos de 3° Año pueden ser egresados.', variant: 'destructive' });
+      return;
+    }
+
+    if (!confirm(`¿Estás seguro que deseas promover a ${account.firstName} ${account.lastName} como Egresado de forma manual?`)) return;
+
+    try {
+      await updateAccount(account.id, {
+        status: 'egresado',
+      });
+      toast({ title: 'Alumno promovido a Egresado con éxito.' });
     } catch {
       toast({ title: 'Error', variant: 'destructive' });
     }
@@ -132,9 +159,11 @@ const GestionCuentas = () => {
             <p className="text-sm text-muted-foreground">Administración de usuarios: Administradores, Coordinadores, Profesores y Alumnos</p>
           </div>
         </div>
-        <Button onClick={() => setShowCreateDialog(true)}>
-          <UserPlus className="h-4 w-4 mr-2" /> Crear Cuenta
-        </Button>
+        {activeTab !== 'egresado' && (
+          <Button onClick={() => setShowCreateDialog(true)}>
+            <UserPlus className="h-4 w-4 mr-2" /> Crear Cuenta
+          </Button>
+        )}
       </div>
 
       <div className="flex items-center gap-4 flex-wrap">
@@ -159,61 +188,44 @@ const GestionCuentas = () => {
 
       {loading && <p className="text-center text-muted-foreground py-8">Cargando cuentas...</p>}
 
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="mb-4 flex-wrap h-auto">
-          <TabsTrigger value="alumno" className="py-2">
-            <GraduationCap className="h-4 w-4 mr-1" /> Alumnos ({filterByView('alumno').length})
-          </TabsTrigger>
-          <TabsTrigger value="docente" className="py-2">
-            <BookOpen className="h-4 w-4 mr-1" /> Profesores ({filterByView('docente').length})
-          </TabsTrigger>
-          <TabsTrigger value="coordinador" className="py-2">
-            <Users className="h-4 w-4 mr-1" /> Coordinadores ({filterByView('coordinador').length})
-          </TabsTrigger>
-          <TabsTrigger value="administrador" className="py-2">
-            <Shield className="h-4 w-4 mr-1" /> Administradores ({filterByView('administrador').length})
-          </TabsTrigger>
-          <TabsTrigger value="egresado" className="py-2">
-            <GraduationCap className="h-4 w-4 mr-1 text-yellow-600" /> Egresados ({filterByView('egresado').length})
-          </TabsTrigger>
-        </TabsList>
-
-        {['alumno', 'docente', 'coordinador', 'administrador', 'egresado'].map(view => (
-          <TabsContent key={view} value={view} className="space-y-3">
-            {filterByView(view).map(account => (
-              <Card key={account.id}>
-                <CardContent className="p-4 flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-lg bg-muted">
-                      {roleIcon(account.role)}
-                    </div>
-                    <div>
-                      <p className="font-medium">{account.lastName}, {account.firstName}</p>
-                      <p className="text-xs text-muted-foreground">
-                        CI: {account.ci} · Email: {account.email}
-                        {account.grade && ` · ${account.grade}`}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Badge variant={account.status === 'activo' ? 'default' : account.status === 'egresado' ? 'outline' : 'secondary'} className={account.status === 'egresado' ? 'border-yellow-500 text-yellow-700' : ''}>
-                      {account.status}
-                    </Badge>
-                    {account.status !== 'egresado' && (
-                      <Button variant="ghost" size="sm" onClick={() => handleToggleStatus(account)}>
-                        {account.status === 'activo' ? 'Desactivar' : 'Activar'}
-                      </Button>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-            {filterByView(view).length === 0 && (
-              <p className="text-center text-muted-foreground py-8">No hay cuentas aquí.</p>
-            )}
-          </TabsContent>
+      <div className="space-y-3 mt-4">
+        {filterByView(activeTab).map(account => (
+          <Card key={account.id}>
+            <CardContent className="p-4 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-muted">
+                  {roleIcon(account.role)}
+                </div>
+                <div>
+                  <p className="font-medium">{account.lastName}, {account.firstName}</p>
+                  <p className="text-xs text-muted-foreground">
+                    CI: {account.ci} · Email: {account.email}
+                    {account.grade && ` · ${account.grade}`}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                {account.role === 'alumno' && account.grade === '3° Año' && account.status === 'activo' && (
+                  <Button variant="outline" size="sm" onClick={() => handlePromoteToEgresado(account)} className="border-green-500 text-green-700 hover:bg-green-50">
+                    <GraduationCap className="h-4 w-4 mr-1" /> Graduar
+                  </Button>
+                )}
+                <Badge variant={account.status === 'activo' ? 'default' : account.status === 'egresado' ? 'outline' : 'secondary'} className={account.status === 'egresado' ? 'border-yellow-500 text-yellow-700' : ''}>
+                  {account.status}
+                </Badge>
+                {account.status !== 'egresado' && (
+                  <Button variant="ghost" size="sm" onClick={() => handleToggleStatus(account)}>
+                    {account.status === 'activo' ? 'Desactivar' : 'Activar'}
+                  </Button>
+                )}
+              </div>
+            </CardContent>
+          </Card>
         ))}
-      </Tabs>
+        {filterByView(activeTab).length === 0 && (
+          <p className="text-center text-muted-foreground py-8">No hay cuentas aquí.</p>
+        )}
+      </div>
 
       {/* Create Account Dialog */}
       <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
@@ -238,19 +250,7 @@ const GestionCuentas = () => {
               <Input value={newAccount.ci} onChange={(e) => setNewAccount(p => ({ ...p, ci: e.target.value }))} placeholder="Ej: 5845123" />
               <p className="text-xs text-muted-foreground">El email será: {newAccount.ci || 'cedula'}@cpcc.com · Contraseña: {newAccount.ci || 'cedula'}cpcc</p>
             </div>
-            <div className="space-y-2">
-              <Label>Rol</Label>
-              <Select value={newAccount.role} onValueChange={(v) => setNewAccount(p => ({ ...p, role: v }))}>
-                <SelectTrigger><SelectValue placeholder="Seleccionar rol" /></SelectTrigger>
-                <SelectContent className="z-[200]">
-                  <SelectItem value="alumno">Alumno</SelectItem>
-                  <SelectItem value="docente">Profesor</SelectItem>
-                  <SelectItem value="coordinador">Coordinador</SelectItem>
-                  <SelectItem value="administrador">Administrador</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            {newAccount.role === 'alumno' && (
+            {(activeTab === 'alumno' || activeTab === 'egresado') && (
               <div className="space-y-2">
                 <Label>Curso</Label>
                 <Select value={newAccount.grade} onValueChange={(v) => setNewAccount(p => ({ ...p, grade: v }))}>
@@ -266,7 +266,7 @@ const GestionCuentas = () => {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowCreateDialog(false)}>Cancelar</Button>
-            <Button onClick={handleCreateAccount} disabled={!newAccount.firstName || !newAccount.lastName || !newAccount.ci || !newAccount.role || (newAccount.role === 'alumno' && !newAccount.grade)}>
+            <Button onClick={handleCreateAccount} disabled={!newAccount.firstName || !newAccount.lastName || !newAccount.ci || ((activeTab === 'alumno' || activeTab === 'egresado') && !newAccount.grade)}>
               Crear Cuenta
             </Button>
           </DialogFooter>

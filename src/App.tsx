@@ -12,6 +12,7 @@ import AppLayout from "./components/AppLayout";
 // Pages
 import AlumnoDashboard from "./pages/alumno/AlumnoDashboard";
 import MisPlanillas from "./pages/alumno/MisPlanillas";
+import Promedio from "./pages/alumno/Promedio";
 
 import DocenteDashboard from "./pages/docente/DocenteDashboard";
 import PlanillaMensual from "./pages/docente/PlanillaMensual";
@@ -53,6 +54,7 @@ const ProtectedRoutes = () => {
         {/* Alumno */}
         <Route path="/alumno" element={<AlumnoDashboard />} />
         <Route path="/alumno/planillas" element={<MisPlanillas />} />
+        <Route path="/alumno/promedio" element={<Promedio />} />
 
         {/* Profesor */}
         <Route path="/docente" element={<DocenteDashboard />} />

@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { CheckCircle, XCircle, Eye, Clock, Layers } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { usePlanillasStore, Planilla } from '@/lib/planillas-store';
@@ -14,6 +14,8 @@ import { useAppStore } from '@/lib/store';
 import { useAccountsStore } from '@/lib/accounts-store';
 
 const RevisarPlanillas = () => {
+  const [searchParams] = useSearchParams();
+  const activeTab = searchParams.get('tab') || 'pendientes';
   const { toast } = useToast();
   const { user, currentRole } = useAppStore();
   const { planillas, loading, fetchPlanillas, updatePlanilla } = usePlanillasStore();
@@ -127,41 +129,38 @@ const RevisarPlanillas = () => {
 
       {loading && <p className="text-center text-muted-foreground py-8">Cargando...</p>}
 
-      <Tabs defaultValue="pendientes">
-        <TabsList>
-          <TabsTrigger value="pendientes">
-            <Clock className="h-4 w-4 mr-1" /> Pendientes ({pendientes.length})
-          </TabsTrigger>
-          <TabsTrigger value="aprobadas">
-            <CheckCircle className="h-4 w-4 mr-1" /> Aprobadas ({aprobadas.length})
-          </TabsTrigger>
-          <TabsTrigger value="rechazadas">
-            <XCircle className="h-4 w-4 mr-1" /> Rechazadas ({rechazadas.length})
-          </TabsTrigger>
-        </TabsList>
+      <div className="space-y-3">
+        {activeTab === 'pendientes' && (
+          <>
+            <h3 className="font-semibold flex items-center gap-2 mb-2"><Clock className="h-4 w-4" /> Pendientes ({pendientes.length})</h3>
+            {pendientes.length === 0 && <p className="text-center text-muted-foreground py-8">No hay planillas pendientes de revisión.</p>}
+            {pendientes.map(planilla => renderPlanillaCard(planilla, true))}
+          </>
+        )}
 
-        <TabsContent value="pendientes" className="space-y-3">
-          {pendientes.length === 0 && <p className="text-center text-muted-foreground py-8">No hay planillas pendientes de revisión.</p>}
-          {pendientes.map(planilla => renderPlanillaCard(planilla, true))}
-        </TabsContent>
+        {activeTab === 'aprobadas' && (
+          <>
+            <h3 className="font-semibold flex items-center gap-2 mb-2"><CheckCircle className="h-4 w-4" /> Aprobadas ({aprobadas.length})</h3>
+            {aprobadas.length === 0 && <p className="text-center text-muted-foreground py-8">No hay planillas aprobadas.</p>}
+            {aprobadas.map(planilla => renderPlanillaCard(planilla, false))}
+          </>
+        )}
 
-        <TabsContent value="aprobadas" className="space-y-3">
-          {aprobadas.length === 0 && <p className="text-center text-muted-foreground py-8">No hay planillas aprobadas.</p>}
-          {aprobadas.map(planilla => renderPlanillaCard(planilla, false))}
-        </TabsContent>
-
-        <TabsContent value="rechazadas" className="space-y-3">
-          {rechazadas.length === 0 && <p className="text-center text-muted-foreground py-8">No hay planillas rechazadas.</p>}
-          {rechazadas.map(planilla => (
-            <div key={planilla.id}>
-              {renderPlanillaCard(planilla, false)}
-              {planilla.rejectionReason && (
-                <p className="text-xs text-destructive ml-4 mt-1">Motivo: {planilla.rejectionReason}</p>
-              )}
-            </div>
-          ))}
-        </TabsContent>
-      </Tabs>
+        {activeTab === 'rechazadas' && (
+          <>
+            <h3 className="font-semibold flex items-center gap-2 mb-2"><XCircle className="h-4 w-4" /> Rechazadas ({rechazadas.length})</h3>
+            {rechazadas.length === 0 && <p className="text-center text-muted-foreground py-8">No hay planillas rechazadas.</p>}
+            {rechazadas.map(planilla => (
+              <div key={planilla.id}>
+                {renderPlanillaCard(planilla, false)}
+                {planilla.rejectionReason && (
+                  <p className="text-xs text-destructive ml-4 mt-1">Motivo: {planilla.rejectionReason}</p>
+                )}
+              </div>
+            ))}
+          </>
+        )}
+      </div>
 
       <Dialog open={!!viewPlanilla} onOpenChange={(open) => !open && setViewPlanilla(null)}>
         <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
@@ -173,33 +172,33 @@ const RevisarPlanillas = () => {
           </DialogHeader>
           {viewPlanilla && (
             <div className="overflow-x-auto">
-              <table className="w-full text-xs border">
+              <table className="w-full text-sm border">
                 <thead>
                   <tr className="border-b bg-muted/50">
                     <th className="py-2 px-2 border-r text-center">N°</th>
                     <th className="py-2 px-3 border-r text-left min-w-[180px]">Alumno</th>
                     {viewPlanilla.tasks.map(task => (
                       <th key={task.id} className="py-2 px-1 border-r text-center min-w-[50px]">
-                        <div className="text-[10px]">{task.name}</div>
-                        <div className="text-[9px] text-muted-foreground">({task.maxPoints}pts)</div>
+                        <div className="text-sm font-semibold">{task.name}</div>
+                        <div className="text-xs text-muted-foreground">({task.maxPoints}pts)</div>
                       </th>
                     ))}
-                    <th className="py-2 px-2 text-center bg-primary/10">TOTAL</th>
+                    <th className="py-2 px-2 text-center bg-primary/10 text-base">TOTAL</th>
                   </tr>
                 </thead>
                 <tbody>
                   {viewPlanilla.scores.map((entry, index) => {
                     const total = viewPlanilla.tasks.reduce((sum, task) => sum + (entry.scores[task.id] || 0), 0);
                     return (
-                      <tr key={entry.studentId} className="border-b">
-                        <td className="py-1 px-2 border-r text-center">{index + 1}</td>
-                        <td className="py-1 px-3 border-r">{getStudentName(entry.studentId)}</td>
+                      <tr key={entry.studentId} className="border-b hover:bg-muted/30">
+                        <td className="py-2 px-2 border-r text-center">{index + 1}</td>
+                        <td className="py-2 px-3 border-r">{getStudentName(entry.studentId)}</td>
                         {viewPlanilla.tasks.map(task => (
-                          <td key={task.id} className="py-1 px-1 border-r text-center font-medium">
+                          <td key={task.id} className="py-2 px-1 border-r text-center font-medium text-base">
                             {entry.scores[task.id] || 0}
                           </td>
                         ))}
-                        <td className="py-1 px-2 text-center font-bold">{total}</td>
+                        <td className="py-2 px-2 text-center font-bold text-base bg-primary/5">{total}</td>
                       </tr>
                     );
                   })}

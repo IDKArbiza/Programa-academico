@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
@@ -13,7 +14,6 @@ import { usePlanillasStore, TaskRow, Planilla } from '@/lib/planillas-store';
 import { useAppStore } from '@/lib/store';
 import { useAccountsStore } from '@/lib/accounts-store';
 import { useCoursesStore } from '@/lib/courses-store';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 const PlanillaMensual = () => {
   const [submitting, setSubmitting] = useState(false);
@@ -65,7 +65,9 @@ const PlanillaMensual = () => {
 
   const [selectedSubjectId, setSelectedSubjectId] = useState('');
   const [selectedMonth, setSelectedMonth] = useState('3');
-  const [activeTab, setActiveTab] = useState('crear');
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const activeTab = searchParams.get('tab') || 'crear';
 
   useEffect(() => {
     if (teacherSubjects.length > 0 && !selectedSubjectId) {
@@ -84,19 +86,29 @@ const PlanillaMensual = () => {
         .sort((a, b) => a.lastName.localeCompare(b.lastName))
     : [];
 
-  const generateDefaultTasks = (hours: number): TaskRow[] =>
-    Array.from({ length: hours }, (_, index) => ({
+  const generateDefaultTasks = (hours: number, targetMonth: number): TaskRow[] => {
+    const baseTasks = Array.from({ length: hours }, (_, index) => ({
       id: `task-${index + 1}`,
       name: `Tarea ${index + 1}`,
       maxPoints: 2,
     }));
+    
+    if (targetMonth === 5 || targetMonth === 11) {
+      baseTasks.push(
+        { id: `task-clubes-${Math.random().toString(36).substr(2, 5)}`, name: 'Clubes', maxPoints: 2 },
+        { id: `task-asistencia-${Math.random().toString(36).substr(2, 5)}`, name: 'Asistencia', maxPoints: 1 },
+        { id: `task-puntualidad-${Math.random().toString(36).substr(2, 5)}`, name: 'Puntualidad', maxPoints: 1 }
+      );
+    }
+    return baseTasks;
+  };
 
   const [tasks, setTasks] = useState<TaskRow[]>([]);
   const [scores, setScores] = useState<Record<string, Record<string, number>>>({});
 
   useEffect(() => {
     if (subject) {
-      setTasks(generateDefaultTasks(subject.hoursPerWeek || 4));
+      setTasks(generateDefaultTasks(subject.hoursPerWeek || 4, month));
       setScores({});
     }
   }, [selectedSubjectId]);
@@ -285,7 +297,7 @@ const PlanillaMensual = () => {
       setScores(scoresMap);
     } else if (subject) {
       // Reset to default tasks and empty scores if no draft exists for this month/subject
-      setTasks(generateDefaultTasks(subject.hoursPerWeek || 4));
+      setTasks(generateDefaultTasks(subject.hoursPerWeek || 4, month));
       setScores({});
     }
   }, [existingPlanilla?.id, selectedSubjectId, selectedMonth]);
@@ -333,13 +345,8 @@ const PlanillaMensual = () => {
         </div>
       </div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList>
-          <TabsTrigger value="crear"><Plus className="h-4 w-4 mr-1" /> Crear/Editar</TabsTrigger>
-          <TabsTrigger value="mis"><FileText className="h-4 w-4 mr-1" /> Mis Planillas ({myPlanillas.length})</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="crear" className="space-y-6">
+      {activeTab === 'crear' && (
+        <div className="space-y-6">
           <div className="flex gap-4 flex-wrap">
             <div className="space-y-1">
               <Label>Materia / Curso</Label>
@@ -391,19 +398,24 @@ const PlanillaMensual = () => {
 
               <div className="flex items-center gap-2 flex-wrap">
                   <span className="text-sm font-medium">Tareas del mes:</span>
-                  {tasks.map(task => (
-                    <Badge key={task.id} variant="outline" className="gap-1 pr-1">
-                      {task.name} ({task.maxPoints}pts)
-                      <button onClick={() => startEditTask(task)} className="ml-1 hover:text-primary">
-                        <Edit2 className="h-3 w-3" />
-                      </button>
-                      {tasks.length > 1 && (
-                        <button onClick={() => removeTask(task.id)} className="hover:text-destructive">
-                          <Trash2 className="h-3 w-3" />
-                        </button>
-                      )}
-                    </Badge>
-                  ))}
+                  {tasks.map(task => {
+                    const isSpecial = task.id.startsWith('task-clubes') || task.id.startsWith('task-asistencia') || task.id.startsWith('task-puntualidad');
+                    return (
+                      <Badge key={task.id} variant="outline" className="gap-1 pr-1">
+                        {task.name} ({task.maxPoints}pts)
+                        {!isSpecial && (
+                          <button onClick={() => startEditTask(task)} className="ml-1 hover:text-primary">
+                            <Edit2 className="h-3 w-3" />
+                          </button>
+                        )}
+                        {!isSpecial && tasks.length > 1 && (
+                          <button onClick={() => removeTask(task.id)} className="hover:text-destructive">
+                            <Trash2 className="h-3 w-3" />
+                          </button>
+                        )}
+                      </Badge>
+                    );
+                  })}
                   <div className="flex flex-wrap gap-2 mt-2">
                     <Button variant="outline" size="sm" onClick={addTask}>
                       <Plus className="h-3 w-3 mr-1" /> Agregar Tarea
@@ -426,28 +438,33 @@ const PlanillaMensual = () => {
               ) : (
                 <Card>
                   <CardContent className="p-0 overflow-x-auto">
-                    <div className="text-center py-3 border-b border-border px-4">
-                      <h3 className="font-bold text-lg">Planilla de Informe Mensual - {subject.name}</h3>
-                      <p className="font-semibold text-primary">{monthName} de {CURRENT_YEAR}</p>
-                      <p className="text-sm text-muted-foreground">
-                        <strong>Curso:</strong> {subject.courseName}
-                      </p>
+                    <div className="text-center py-3 border-b border-border px-4 flex justify-between items-center">
+                      <div>
+                        <h3 className="font-bold text-lg text-left">Planilla de Informe Mensual - {subject.name}</h3>
+                        <p className="font-semibold text-primary text-left">{monthName} de {CURRENT_YEAR}</p>
+                        <p className="text-sm text-muted-foreground text-left">
+                          <strong>Curso:</strong> {subject.courseName}
+                        </p>
+                      </div>
+                      <Button variant="outline" size="sm" className="no-print" onClick={() => window.print()}>
+                        <FileText className="h-4 w-4 mr-2" /> Descargar PDF
+                      </Button>
                     </div>
 
-                    <table className="w-full text-xs min-w-[600px]">
+                    <table className="w-full text-sm min-w-[600px]">
                       <thead>
                         <tr className="border-b border-border">
                           <th className="text-center py-2 px-2 border-r border-border w-10 bg-muted/50">N°</th>
                           <th className="text-left py-2 px-3 border-r border-border min-w-[200px] bg-muted/50">Apellidos y Nombres</th>
                           {tasks.map(task => (
                             <th key={task.id} className="text-center py-2 px-1 border-r border-border bg-muted/50 min-w-[60px]">
-                              <div className="text-[10px] leading-tight font-medium">{task.name}</div>
-                              <div className="text-[9px] text-muted-foreground">({task.maxPoints}pts)</div>
+                              <div className="text-sm leading-tight font-semibold">{task.name}</div>
+                              <div className="text-xs text-muted-foreground">({task.maxPoints}pts)</div>
                             </th>
                           ))}
                           <th className="text-center py-2 px-2 bg-primary/10 min-w-[60px]">
-                            <div className="text-[10px] font-bold">TOTAL</div>
-                            <div className="text-[9px] text-muted-foreground">/{totalMaxPoints}</div>
+                            <div className="text-base font-bold">TOTAL</div>
+                            <div className="text-xs text-muted-foreground">/{totalMaxPoints}</div>
                           </th>
                         </tr>
                       </thead>
@@ -490,12 +507,13 @@ const PlanillaMensual = () => {
                                     max={task.maxPoints}
                                     value={getScore(student.id, task.id) || ''}
                                     onChange={(e) => setScore(student.id, task.id, e.target.value, task.maxPoints)}
-                                    className="w-14 h-7 mx-auto text-center text-xs font-bold p-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                    className="w-14 h-7 mx-auto text-center text-sm font-bold p-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                                     placeholder="-"
+                                    disabled={existingPlanilla?.status === 'aprobado' || existingPlanilla?.status === 'enviado'}
                                   />
                                 </td>
                               ))}
-                              <td className={`text-center py-1 px-2 font-bold text-sm ${
+                              <td className={`text-center py-1 px-2 font-bold text-base ${
                                 pct >= 80 ? 'text-green-600' : pct >= 50 ? 'text-amber-600' : total > 0 ? 'text-red-600' : 'text-muted-foreground'
                               }`}>
                                 {total > 0 ? total : '-'}
@@ -509,23 +527,23 @@ const PlanillaMensual = () => {
                 </Card>
               )}
 
-              {students.length > 0 && (
+              {students.length > 0 && existingPlanilla?.status !== 'aprobado' && existingPlanilla?.status !== 'enviado' && (
                 <div className="flex gap-3">
                   <Button variant="outline" onClick={handleSave} disabled={loading || submitting}>
-                    <Save className="h-4 w-4 mr-2" />{existingPlanilla?.status === 'aprobado' || existingPlanilla?.status === 'enviado' ? 'Actualizar Puntajes' : 'Guardar Borrador'}
+                    <Save className="h-4 w-4 mr-2" />Guardar Borrador
                   </Button>
-                  {existingPlanilla?.status !== 'aprobado' && existingPlanilla?.status !== 'enviado' && (
-                    <Button onClick={handleSubmit} disabled={loading || submitting || !courseCoordinatorId}>
-                      <Send className="h-4 w-4 mr-2" />{submitting ? 'Enviando...' : 'Enviar al Coordinador'}
-                    </Button>
-                  )}
+                  <Button onClick={handleSubmit} disabled={loading || submitting || !courseCoordinatorId}>
+                    <Send className="h-4 w-4 mr-2" />{submitting ? 'Enviando...' : 'Enviar al Coordinador'}
+                  </Button>
                 </div>
               )}
             </>
           )}
-        </TabsContent>
+        </div>
+      )}
 
-        <TabsContent value="mis" className="space-y-4">
+      {activeTab === 'mis' && (
+        <div className="space-y-4">
           {loading && <p className="text-center text-muted-foreground py-8">Cargando planillas...</p>}
           {!loading && myPlanillas.length === 0 && (
             <p className="text-center text-muted-foreground py-8">No tenés planillas guardadas aún.</p>
@@ -555,7 +573,7 @@ const PlanillaMensual = () => {
                           onClick={() => {
                             setSelectedSubjectId(planilla.subjectId);
                             setSelectedMonth(String(planilla.month));
-                            setActiveTab('crear');
+                            navigate('?tab=crear');
                           }}
                         >
                           <Edit2 className="h-3 w-3 mr-1" /> Editar
@@ -570,8 +588,8 @@ const PlanillaMensual = () => {
               </Card>
             );
           })}
-        </TabsContent>
-      </Tabs>
+        </div>
+      )}
 
       <Dialog open={!!editingTask} onOpenChange={(open) => !open && setEditingTask(null)}>
         <DialogContent className="sm:max-w-[400px]">

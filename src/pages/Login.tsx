@@ -19,12 +19,12 @@ const Login = () => {
   const handleLogin = async () => {
     setError('');
     if (!cedula || !password) {
-      setError('Por favor, ingrese su correo electrónico y contraseña');
+      setError('Faltan credenciales.');
       return;
     }
 
     if (!cedula.includes('@') || !cedula.endsWith('@cpcc.com')) {
-      setError('Por favor, ingrese un correo válido con formato: cedula@cpcc.com');
+      setError('Correo inválido.');
       return;
     }
 
@@ -32,7 +32,7 @@ const Login = () => {
     const expectedPassword = `${cedulaNumber}cpcc`;
 
     if (password !== expectedPassword) {
-      setError('Contraseña incorrecta. Por favor, verifique sus datos.');
+      setError('Contraseña incorrecta.');
       return;
     }
 
@@ -41,7 +41,7 @@ const Login = () => {
 
     const success = await login(cedula, password);
     if (!success) {
-      setError('Usuario no encontrado o cuenta inactiva. Verifique sus credenciales.');
+      setError('Usuario no encontrado o inactivo.');
     }
   };
 

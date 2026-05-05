@@ -1,35 +1,41 @@
 import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Layers, BookOpen } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { useEffect } from 'react';
+import { useAppStore } from '@/lib/store';
+import { useCoursesStore } from '@/lib/courses-store';
+import { usePlanillasStore } from '@/lib/planillas-store';
 
 const DocenteDashboard = () => {
+  const { user } = useAppStore();
+  const { courses, fetchCourses } = useCoursesStore();
+  const { planillas, fetchPlanillas } = usePlanillasStore();
+
+  useEffect(() => {
+    fetchCourses(true);
+    fetchPlanillas(true);
+  }, []);
+
+  const totalCursosAsignados = courses.reduce((count, course) => {
+    return count + course.subjects.filter(sub => sub.teacherId === user?.id).length;
+  }, 0);
+
+  const planillasCreadas = planillas.filter(p => p.teacherId === user?.id).length;
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-3">
-        <BookOpen className="h-6 w-6 text-primary" />
-        <div>
-          <h2 className="text-2xl font-bold">Panel del Profesor</h2>
-          <p className="text-sm text-muted-foreground">Colegio Politécnico CPCC — Nivel Medio</p>
-        </div>
+      <div className="grid gap-4 md:grid-cols-2">
+        <Card className="bg-primary/5 border-primary/20">
+          <CardContent className="p-6">
+            <h3 className="text-sm font-medium text-muted-foreground mb-1">Materias Asignadas</h3>
+            <p className="text-3xl font-bold text-primary">{totalCursosAsignados}</p>
+          </CardContent>
+        </Card>
+        <Card className="bg-primary/5 border-primary/20">
+          <CardContent className="p-6">
+            <h3 className="text-sm font-medium text-muted-foreground mb-1">Planillas Creadas</h3>
+            <p className="text-3xl font-bold text-primary">{planillasCreadas}</p>
+          </CardContent>
+        </Card>
       </div>
-
-      <Card>
-        <CardContent className="p-6 flex items-center gap-4">
-          <div className="p-3 rounded-xl bg-primary/10">
-            <Layers className="h-8 w-8 text-primary" />
-          </div>
-          <div className="flex-1">
-            <h3 className="font-semibold text-lg">Planillas Mensuales</h3>
-            <p className="text-sm text-muted-foreground">
-              Creá, editá, eliminá y enviá planillas de puntaje mensual por materia.
-            </p>
-          </div>
-          <Link to="/docente/planillas">
-            <Button>Ir a Planillas</Button>
-          </Link>
-        </CardContent>
-      </Card>
     </div>
   );
 };
