@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { CheckCircle, XCircle, Eye, Clock, Layers } from 'lucide-react';
+import { CheckCircle, XCircle, Eye, Clock, Layers, AlertTriangle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { usePlanillasStore, Planilla } from '@/lib/planillas-store';
 import { ALL_MONTHS } from '@/lib/constants';
@@ -28,7 +28,7 @@ const RevisarPlanillas = () => {
   useEffect(() => {
     fetchPlanillas(true);
     fetchAccounts(true);
-  }, []);
+  }, [fetchPlanillas, fetchAccounts]);
 
   const CURRENT_YEAR = new Date().getFullYear();
 
@@ -40,6 +40,7 @@ const RevisarPlanillas = () => {
   const pendientes = visiblePlanillas.filter(planilla => planilla.status === 'enviado');
   const aprobadas = visiblePlanillas.filter(planilla => planilla.status === 'aprobado');
   const rechazadas = visiblePlanillas.filter(planilla => planilla.status === 'rechazado');
+  const solicitudesEdicion = visiblePlanillas.filter(planilla => planilla.editRequestStatus === 'pending');
 
   const handleApprove = async (planilla: Planilla) => {
     try {
@@ -70,16 +71,38 @@ const RevisarPlanillas = () => {
     }
   };
 
+  const handleApproveEdit = async (planilla: Planilla) => {
+    try {
+      await updatePlanilla(planilla.id, {
+        editRequestStatus: 'approved',
+      });
+      toast({ title: 'Edición permitida', description: `El profesor ahora puede editar la planilla de ${planilla.subjectName}` });
+    } catch {
+      toast({ title: 'Error', variant: 'destructive' });
+    }
+  };
+
+  const handleDenyEdit = async (planilla: Planilla) => {
+    try {
+      await updatePlanilla(planilla.id, {
+        editRequestStatus: 'none',
+      });
+      toast({ title: 'Edición denegada', description: 'Se ha rechazado el pedido de edición.' });
+    } catch {
+      toast({ title: 'Error', variant: 'destructive' });
+    }
+  };
+
   const getStudentName = (id: string) => {
     const account = accounts.find(acc => acc.id === id);
     return account ? `${account.lastName}, ${account.firstName}` : id;
   };
 
-  const renderPlanillaCard = (planilla: Planilla, showActions: boolean) => {
+  const renderPlanillaCard = (planilla: Planilla, showActions: boolean, isEditRequest: boolean = false) => {
     const monthLabel = ALL_MONTHS.find(month => month.month === planilla.month)?.name || '';
 
     return (
-      <Card key={planilla.id}>
+      <Card key={planilla.id} className={isEditRequest ? 'border-amber-200 bg-amber-50/30' : ''}>
         <CardContent className="p-4">
           <div className="flex items-center justify-between">
             <div>
@@ -91,18 +114,34 @@ const RevisarPlanillas = () => {
                 {planilla.tasks.length} tareas - {planilla.scores.length} alumnos
                 {planilla.submittedDate && ` - Enviada: ${new Date(planilla.submittedDate).toLocaleDateString('es-PY')}`}
               </p>
+              {isEditRequest && planilla.editRequestReason && (
+                <div className="mt-2 p-2 bg-amber-100/50 rounded border border-amber-200">
+                  <p className="text-xs font-semibold text-amber-800">Motivo de edición:</p>
+                  <p className="text-xs text-amber-700 italic">"{planilla.editRequestReason}"</p>
+                </div>
+              )}
             </div>
             <div className="flex items-center gap-2">
               <Button variant="outline" size="sm" onClick={() => setViewPlanilla(planilla)}>
                 <Eye className="h-4 w-4 mr-1" /> Ver
               </Button>
-              {showActions && (
+              {showActions && !isEditRequest && (
                 <>
                   <Button size="sm" onClick={() => handleApprove(planilla)} className="bg-green-600 hover:bg-green-700">
                     <CheckCircle className="h-4 w-4 mr-1" /> Aprobar
                   </Button>
                   <Button variant="destructive" size="sm" onClick={() => { setRejectPlanilla(planilla); setRejectionReason(''); }}>
                     <XCircle className="h-4 w-4 mr-1" /> Rechazar
+                  </Button>
+                </>
+              )}
+              {isEditRequest && (
+                <>
+                  <Button size="sm" onClick={() => handleApproveEdit(planilla)} className="bg-amber-600 hover:bg-amber-700">
+                    <CheckCircle className="h-4 w-4 mr-1" /> Permitir Edición
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={() => handleDenyEdit(planilla)} className="text-destructive border-destructive hover:bg-destructive/10">
+                    <XCircle className="h-4 w-4 mr-1" /> Denegar
                   </Button>
                 </>
               )}
@@ -130,6 +169,14 @@ const RevisarPlanillas = () => {
       {loading && <p className="text-center text-muted-foreground py-8">Cargando...</p>}
 
       <div className="space-y-3">
+        {solicitudesEdicion.length > 0 && (
+          <div className="mb-6 space-y-3">
+            <h3 className="font-semibold flex items-center gap-2 text-amber-700"><AlertTriangle className="h-4 w-4" /> Solicitudes de Edición ({solicitudesEdicion.length})</h3>
+            {solicitudesEdicion.map(planilla => renderPlanillaCard(planilla, false, true))}
+            <hr className="my-4" />
+          </div>
+        )}
+
         {activeTab === 'pendientes' && (
           <>
             <h3 className="font-semibold flex items-center gap-2 mb-2"><Clock className="h-4 w-4" /> Pendientes ({pendientes.length})</h3>

@@ -29,10 +29,12 @@ const DocenteDashboard = () => {
             <p className="text-3xl font-bold text-primary">{totalCursosAsignados}</p>
           </CardContent>
         </Card>
-        <Card className="bg-primary/5 border-primary/20">
+        <Card className="bg-amber-50 border-amber-200">
           <CardContent className="p-6">
-            <h3 className="text-sm font-medium text-muted-foreground mb-1">Planillas Creadas</h3>
-            <p className="text-3xl font-bold text-primary">{planillasCreadas}</p>
+            <h3 className="text-sm font-medium text-amber-700 mb-1">Ediciones Permitidas</h3>
+            <p className="text-3xl font-bold text-amber-600">
+              {planillas.filter(p => p.teacherId === user?.id && p.editRequestStatus === 'approved').length}
+            </p>
           </CardContent>
         </Card>
       </div>

@@ -43,6 +43,9 @@ export interface Planilla {
   approvedDate?: string;
   approvedBy?: string;
   rejectionReason?: string;
+  editRequestStatus?: 'none' | 'pending' | 'approved';
+  editRequestDate?: string;
+  editRequestReason?: string;
   claims?: Claim[];
   createdAt?: string;
   updatedAt?: string;

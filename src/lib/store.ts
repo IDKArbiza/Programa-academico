@@ -54,7 +54,7 @@ export const useAppStore = create<AppState>((set) => ({
         const normalizedRole = account.role;
         const userName = account.firstName && account.lastName 
           ? `${account.firstName} ${account.lastName}` 
-          : (account as any).name || account.email;
+          : account.email;
 
         const user: User = {
           id: account.id,

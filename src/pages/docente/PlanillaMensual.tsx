@@ -1,4 +1,6 @@
 import { useState, useEffect } from 'react';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -31,7 +33,7 @@ const PlanillaMensual = () => {
     fetchPlanillas(true);
     fetchAccounts(true);
     fetchCourses(true);
-  }, []);
+  }, [fetchPlanillas, fetchAccounts, fetchCourses]);
 
   const teacherSubjects = courses.flatMap(course => {
     const teacherAssignments = course.teacherAssignments || [];
@@ -73,7 +75,7 @@ const PlanillaMensual = () => {
     if (teacherSubjects.length > 0 && !selectedSubjectId) {
       setSelectedSubjectId(teacherSubjects[0].subjectId);
     }
-  }, [teacherSubjects.length]);
+  }, [teacherSubjects.length, selectedSubjectId]);
 
   const subject = teacherSubjects.find(s => s.subjectId === selectedSubjectId);
   const month = parseInt(selectedMonth);
@@ -111,7 +113,7 @@ const PlanillaMensual = () => {
       setTasks(generateDefaultTasks(subject.hoursPerWeek || 4, month));
       setScores({});
     }
-  }, [selectedSubjectId]);
+  }, [selectedSubjectId, month]);
 
   const totalMaxPoints = tasks.reduce((sum, task) => sum + task.maxPoints, 0);
 
@@ -148,8 +150,11 @@ const PlanillaMensual = () => {
   const [editName, setEditName] = useState('');
   const [editMaxPoints, setEditMaxPoints] = useState<number>(2);
 
-  const [selectedClaim, setSelectedClaim] = useState<any>(null);
+  const [selectedClaim, setSelectedClaim] = useState<Claim | null>(null);
   const [teacherReply, setTeacherReply] = useState('');
+
+  const [requestDialogOpen, setRequestDialogOpen] = useState(false);
+  const [requestReason, setRequestReason] = useState('');
 
   const handleResolveClaim = async () => {
     if (!selectedClaim || !existingPlanilla) return;
@@ -182,10 +187,105 @@ const PlanillaMensual = () => {
     planilla => planilla.subjectId === selectedSubjectId && planilla.month === month && planilla.year === CURRENT_YEAR && planilla.teacherId === TEACHER_ID
   );
 
+  const canEdit = !existingPlanilla ||
+                  existingPlanilla.status === 'borrador' ||
+                  existingPlanilla.status === 'rechazado' ||
+                  existingPlanilla.editRequestStatus === 'approved';
+
+  const handleRequestEdit = async () => {
+    if (!existingPlanilla || !requestReason.trim()) return;
+    try {
+      await updatePlanilla(existingPlanilla.id, {
+        editRequestStatus: 'pending',
+        editRequestReason: requestReason,
+        editRequestDate: new Date().toISOString(),
+      });
+      toast({ title: 'Solicitud enviada', description: 'El coordinador revisará tu pedido.' });
+      setRequestDialogOpen(false);
+      setRequestReason('');
+    } catch {
+      toast({ title: 'Error', variant: 'destructive' });
+    }
+  };
+
   const buildPlanillaScores = () => students.map(student => ({
     studentId: student.id,
     scores: scores[student.id] || {},
   }));
+
+  const handleDownloadPDF = () => {
+    if (!subject) return;
+    const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
+    const pageWidth = doc.internal.pageSize.getWidth();
+
+    // Header institucional
+    doc.setFontSize(13);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Colegio Politécnico CPCC - Nivel Medio', pageWidth / 2, 36, { align: 'center' });
+
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'normal');
+    doc.text('Planilla de Informe Mensual', pageWidth / 2, 52, { align: 'center' });
+
+    // Info de la planilla
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'bold');
+    doc.text(`Materia: `, 40, 72);
+    doc.setFont('helvetica', 'normal');
+    doc.text(subject.name, 90, 72);
+
+    doc.setFont('helvetica', 'bold');
+    doc.text(`Curso: `, 40, 86);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`${subject.courseName} (${subject.grade})`, 72, 86);
+
+    doc.setFont('helvetica', 'bold');
+    doc.text(`Mes: `, pageWidth / 2, 72);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`${monthName} de ${CURRENT_YEAR}`, pageWidth / 2 + 28, 72);
+
+    doc.setFont('helvetica', 'bold');
+    doc.text(`Profesor/a: `, pageWidth / 2, 86);
+    doc.setFont('helvetica', 'normal');
+    doc.text(teacherName, pageWidth / 2 + 58, 86);
+
+    // Tabla
+    const head = [
+      ['N°', 'Apellidos y Nombres', ...tasks.map(t => `${t.name}\n(${t.maxPoints}pts)`), 'TOTAL']
+    ];
+
+    const body = students.map((student, idx) => {
+      const total = tasks.reduce((sum, task) => sum + getScore(student.id, task.id), 0);
+      return [
+        String(idx + 1),
+        `${student.lastName}, ${student.firstName}`,
+        ...tasks.map(task => {
+          const s = getScore(student.id, task.id);
+          return s > 0 ? String(s) : '-';
+        }),
+        total > 0 ? String(total) : '-',
+      ];
+    });
+
+    const colStyles: Record<number, object> = { 0: { halign: 'center', cellWidth: 28 } };
+    tasks.forEach((_, i) => { colStyles[i + 2] = { halign: 'center', cellWidth: 46 }; });
+    colStyles[tasks.length + 2] = { halign: 'center', cellWidth: 46, fontStyle: 'bold' };
+
+    autoTable(doc, {
+      head,
+      body,
+      startY: 102,
+      styles: { fontSize: 9, cellPadding: 4, lineColor: [180, 180, 180], lineWidth: 0.5 },
+      headStyles: { fillColor: [50, 50, 100], textColor: 255, fontStyle: 'bold', halign: 'center' },
+      alternateRowStyles: { fillColor: [245, 245, 255] },
+      columnStyles: colStyles,
+      tableWidth: 'auto',
+      margin: { left: 40, right: 40 },
+    });
+
+    const fileName = `Planilla_${subject.name.replace(/\s+/g, '_')}_${monthName}_${CURRENT_YEAR}.pdf`;
+    doc.save(fileName);
+  };
 
   const handleSave = async () => {
     if (!subject || submitting) return;
@@ -205,6 +305,7 @@ const PlanillaMensual = () => {
             ? existingPlanilla.status 
             : 'borrador',
           rejectionReason: undefined,
+          editRequestStatus: existingPlanilla.editRequestStatus,
         });
       } else {
         await savePlanilla({
@@ -258,6 +359,7 @@ const PlanillaMensual = () => {
           status: 'enviado',
           submittedDate: new Date().toISOString(),
           rejectionReason: undefined,
+          editRequestStatus: 'none',
         });
       } else {
         await savePlanilla({
@@ -403,12 +505,12 @@ const PlanillaMensual = () => {
                     return (
                       <Badge key={task.id} variant="outline" className="gap-1 pr-1">
                         {task.name} ({task.maxPoints}pts)
-                        {!isSpecial && (
+                        {!isSpecial && canEdit && (
                           <button onClick={() => startEditTask(task)} className="ml-1 hover:text-primary">
                             <Edit2 className="h-3 w-3" />
                           </button>
                         )}
-                        {!isSpecial && tasks.length > 1 && (
+                        {!isSpecial && tasks.length > 1 && canEdit && (
                           <button onClick={() => removeTask(task.id)} className="hover:text-destructive">
                             <Trash2 className="h-3 w-3" />
                           </button>
@@ -417,16 +519,16 @@ const PlanillaMensual = () => {
                     );
                   })}
                   <div className="flex flex-wrap gap-2 mt-2">
-                    <Button variant="outline" size="sm" onClick={addTask}>
+                    <Button variant="outline" size="sm" onClick={addTask} disabled={!canEdit}>
                       <Plus className="h-3 w-3 mr-1" /> Agregar Tarea
                     </Button>
-                    <Button variant="outline" size="sm" onClick={() => addSpecialTask('Trabajo Práctico', 5)}>
+                    <Button variant="outline" size="sm" onClick={() => addSpecialTask('Trabajo Práctico', 5)} disabled={!canEdit}>
                       <Plus className="h-3 w-3 mr-1" /> Añadir T.P.
                     </Button>
-                    <Button variant="outline" size="sm" onClick={() => addSpecialTask('Examen Parcial', 12)}>
+                    <Button variant="outline" size="sm" onClick={() => addSpecialTask('Examen Parcial', 12)} disabled={!canEdit}>
                       <Plus className="h-3 w-3 mr-1" /> Añadir Ex. Parcial
                     </Button>
-                    <Button variant="outline" size="sm" onClick={() => addSpecialTask('Examen', 30)}>
+                    <Button variant="outline" size="sm" onClick={() => addSpecialTask('Examen', 30)} disabled={!canEdit}>
                       <Plus className="h-3 w-3 mr-1" /> Añadir Examen
                     </Button>
                   </div>
@@ -446,7 +548,7 @@ const PlanillaMensual = () => {
                           <strong>Curso:</strong> {subject.courseName}
                         </p>
                       </div>
-                      <Button variant="outline" size="sm" className="no-print" onClick={() => window.print()}>
+                      <Button variant="outline" size="sm" onClick={handleDownloadPDF}>
                         <FileText className="h-4 w-4 mr-2" /> Descargar PDF
                       </Button>
                     </div>
@@ -509,7 +611,7 @@ const PlanillaMensual = () => {
                                     onChange={(e) => setScore(student.id, task.id, e.target.value, task.maxPoints)}
                                     className="w-14 h-7 mx-auto text-center text-sm font-bold p-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                                     placeholder="-"
-                                    disabled={existingPlanilla?.status === 'aprobado' || existingPlanilla?.status === 'enviado'}
+                                    disabled={!canEdit}
                                   />
                                 </td>
                               ))}
@@ -527,16 +629,36 @@ const PlanillaMensual = () => {
                 </Card>
               )}
 
-              {students.length > 0 && existingPlanilla?.status !== 'aprobado' && existingPlanilla?.status !== 'enviado' && (
-                <div className="flex gap-3">
-                  <Button variant="outline" onClick={handleSave} disabled={loading || submitting}>
-                    <Save className="h-4 w-4 mr-2" />Guardar Borrador
-                  </Button>
-                  <Button onClick={handleSubmit} disabled={loading || submitting || !courseCoordinatorId}>
-                    <Send className="h-4 w-4 mr-2" />{submitting ? 'Enviando...' : 'Enviar al Coordinador'}
-                  </Button>
-                </div>
-              )}
+              {(() => {
+                const isLocked = existingPlanilla && (existingPlanilla.status === 'aprobado' || existingPlanilla.status === 'enviado');
+                const hasPendingRequest = existingPlanilla?.editRequestStatus === 'pending';
+                const showFooter = students.length > 0 && (canEdit || (isLocked && existingPlanilla?.editRequestStatus !== 'approved'));
+                if (!showFooter) return null;
+                return (
+                  <div className="flex gap-3 flex-wrap">
+                    {canEdit && (
+                      <>
+                        <Button variant="outline" onClick={handleSave} disabled={loading || submitting}>
+                          <Save className="h-4 w-4 mr-2" />Guardar Borrador
+                        </Button>
+                        <Button onClick={handleSubmit} disabled={loading || submitting || !courseCoordinatorId}>
+                          <Send className="h-4 w-4 mr-2" />{submitting ? 'Enviando...' : 'Enviar al Coordinador'}
+                        </Button>
+                      </>
+                    )}
+                    {isLocked && !hasPendingRequest && existingPlanilla?.editRequestStatus !== 'approved' && (
+                      <Button variant="secondary" onClick={() => setRequestDialogOpen(true)}>
+                        <AlertTriangle className="h-4 w-4 mr-2" /> Pedir permiso para editar
+                      </Button>
+                    )}
+                    {hasPendingRequest && (
+                      <Badge variant="outline" className="bg-amber-50 text-amber-600 border-amber-200 py-2 px-4">
+                        Solicitud de edición pendiente de aprobación
+                      </Badge>
+                    )}
+                  </div>
+                );
+              })()}
             </>
           )}
         </div>
@@ -640,6 +762,33 @@ const PlanillaMensual = () => {
             {!selectedClaim?.resolved && (
               <Button onClick={handleResolveClaim}>Resolver Reclamo</Button>
             )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={requestDialogOpen} onOpenChange={setRequestDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Solicitar permiso de edición</DialogTitle>
+            <p className="text-sm text-muted-foreground">
+              Explicá por qué necesitas editar esta planilla que ya fue enviada o aprobada.
+            </p>
+          </DialogHeader>
+          <div className="py-4 space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="reason">Motivo de la edición</Label>
+              <textarea
+                id="reason"
+                className="w-full h-32 p-2 text-sm border rounded-md focus:ring-2 focus:ring-primary focus:outline-none"
+                placeholder="Ej: Me equivoqué en la nota de un alumno, necesito agregar una tarea extra..."
+                value={requestReason}
+                onChange={(e) => setRequestReason(e.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRequestDialogOpen(false)}>Cancelar</Button>
+            <Button onClick={handleRequestEdit} disabled={!requestReason.trim()}>Enviar Solicitud</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
